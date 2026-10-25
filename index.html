@@ -1,0 +1,4351 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enterprise SNMP Network Topology & Management Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ══════════════════════════════════════════════════════════════════
+       THIẾT KẾ GIAO DIỆN THEO CHUẨN DỰ ÁN SNMP-TOPO-LAN-CARD
+       Bao gồm 2 theme: NEON CYBERPUNK và GLASS ENTERPRISE
+       Tích hợp: Bộ Thông Số Kỹ Thuật Chi Tiết Cho Từng Loại Thiết Bị:
+       Switch/Router/Firewall, WiFi AP/WLC, Máy Chủ/Storage, Máy In MFP, Dịch Vụ Mạng
+       ══════════════════════════════════════════════════════════════════ */
+    :root {
+      --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      /* Neon Cyberpunk Theme (Default) */
+      --bg-gradient: radial-gradient(circle at 50% 0%, #0d1527 0%, #060913 60%, #03050a 100%);
+      --bg-panel: rgba(13, 22, 41, 0.75);
+      --bg-panel-solid: #0d1629;
+      --bg-node: rgba(17, 28, 54, 0.92);
+      --border-color: rgba(45, 114, 238, 0.25);
+      --border-highlight: rgba(0, 240, 255, 0.5);
+      --text-main: #f0f6fc;
+      --text-muted: #8b9bb4;
+      --accent-cyan: #00f2fe;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-warn: #f59e0b;
+      --accent-crit: #ef4444;
+      --accent-purple: #8b5cf6;
+      --accent-pink: #ec4899;
+      --flow-color: #00f0ff;
+      --flow-glow: 0 0 12px rgba(0, 240, 255, 0.8);
+      --card-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+    }
+
+    [data-theme="glass"] {
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      --bg-panel: rgba(255, 255, 255, 0.05);
+      --bg-panel-solid: #1e293b;
+      --bg-node: rgba(30, 41, 59, 0.78);
+      --border-color: rgba(255, 255, 255, 0.12);
+      --border-highlight: rgba(59, 130, 246, 0.5);
+      --text-main: #ffffff;
+      --text-muted: #94a3b8;
+      --accent-cyan: #38bdf8;
+      --accent-blue: #60a5fa;
+      --accent-green: #34d399;
+      --accent-warn: #fbbf24;
+      --accent-crit: #f87171;
+      --accent-purple: #a78bfa;
+      --accent-pink: #f472b6;
+      --flow-color: #38bdf8;
+      --flow-glow: 0 0 10px rgba(56, 189, 248, 0.5);
+      --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ══════ HEADER & TOOLBAR ══════ */
+    .top-header {
+      background: var(--bg-panel);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(59, 130, 246, 0.2));
+      border: 1px solid var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-cyan);
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+    }
+
+    .brand-text h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #fff, var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-protocol {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      -webkit-text-fill-color: var(--accent-green);
+      font-family: var(--font-mono);
+    }
+
+    .brand-text p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      position: relative;
+      width: 220px;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px 8px 34px;
+      color: var(--text-main);
+      font-size: 0.82rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 10px rgba(0, 242, 254, 0.25);
+    }
+
+    .search-box svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 13px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      font-family: var(--font-main);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      backdrop-filter: blur(8px);
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--border-highlight);
+      transform: translateY(-1px);
+    }
+
+    .btn-active {
+      background: rgba(0, 240, 255, 0.18) !important;
+      border-color: var(--accent-cyan) !important;
+      color: var(--accent-cyan) !important;
+      box-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.25), rgba(59, 130, 246, 0.25));
+      border-color: var(--accent-cyan);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.4), rgba(59, 130, 246, 0.4));
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+    }
+
+    .btn-danger-outline {
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+
+    .btn-danger-outline:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: var(--accent-crit);
+      color: #fff;
+    }
+
+    .btn-sm {
+      padding: 4px 8px;
+      font-size: 0.72rem;
+      border-radius: 6px;
+    }
+
+    /* ══════ CATEGORY FILTER BAR ══════ */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 24px 0 24px;
+      overflow-x: auto;
+    }
+
+    .filter-chip {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .filter-chip:hover {
+      border-color: var(--accent-cyan);
+      color: var(--text-main);
+    }
+
+    .filter-chip.active {
+      background: rgba(0, 242, 254, 0.15);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 10px rgba(0, 242, 254, 0.25);
+    }
+
+    /* ══════ KPI STATS BAR ══════ */
+    .kpi-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      padding: 12px 24px 0 24px;
+    }
+
+    .kpi-card {
+      background: var(--bg-panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--card-shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--accent-cyan);
+    }
+
+    .kpi-card.kpi-warn::before { background: var(--accent-warn); }
+    .kpi-card.kpi-crit::before { background: var(--accent-crit); }
+    .kpi-card.kpi-green::before { background: var(--accent-green); }
+
+    .kpi-info .kpi-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .kpi-info .kpi-val {
+      font-size: 1.25rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      margin: 4px 0 2px;
+      color: var(--text-main);
+    }
+
+    .kpi-info .kpi-sub {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .kpi-chart {
+      width: 60px;
+      height: 32px;
+    }
+
+    /* ══════ MAIN MONITORING VIEWPORT ══════ */
+    .viewport-wrapper {
+      flex: 1;
+      padding: 14px 24px;
+      position: relative;
+      display: flex;
+      gap: 16px;
+      min-height: 620px;
+    }
+
+    .canvas-container {
+      flex: 1;
+      background: var(--bg-panel);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .arrange-mode-banner {
+      position: absolute;
+      top: 14px;
+      left: 18px;
+      z-index: 25;
+      background: rgba(0, 240, 255, 0.15);
+      border: 1px solid var(--accent-cyan);
+      backdrop-filter: blur(10px);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      display: none;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+      animation: pulseBanner 2s infinite ease-in-out;
+    }
+
+    @keyframes pulseBanner {
+      0%, 100% { border-color: var(--accent-cyan); }
+      50% { border-color: #fff; }
+    }
+
+    .canvas-overlay-ctrls {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      gap: 6px;
+      z-index: 20;
+      background: rgba(6, 9, 19, 0.85);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 4px;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--accent-cyan);
+    }
+
+    /* SVG Canvas */
+    #topo-svg-canvas {
+      width: 100%;
+      height: 100%;
+      min-height: 680px;
+      cursor: grab;
+      user-select: none;
+    }
+
+    #topo-svg-canvas:active {
+      cursor: grabbing;
+    }
+
+    /* Links Layer */
+    .link-path-base {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.1);
+      stroke-width: 2px;
+    }
+
+    .link-path-flow {
+      fill: none;
+      stroke-linecap: round;
+      animation: dashPulse linear infinite;
+    }
+
+    @keyframes dashPulse {
+      from { stroke-dashoffset: 40; }
+      to { stroke-dashoffset: 0; }
+    }
+
+    .link-speed-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      fill: #fff;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+
+    .link-speed-bg {
+      fill: #060a14;
+      stroke: var(--accent-cyan);
+      stroke-width: 1px;
+      rx: 4;
+      ry: 4;
+      opacity: 0.95;
+    }
+
+    /* SVG Nodes Layer */
+    .svg-node-group {
+      cursor: pointer;
+      transition: filter 0.2s ease-out, opacity 0.3s;
+    }
+
+    .svg-node-group:hover {
+      filter: drop-shadow(0 0 12px var(--accent-cyan));
+    }
+
+    .node-box {
+      rx: 10;
+      ry: 10;
+      fill: var(--bg-node);
+      stroke: var(--border-color);
+      stroke-width: 1.5;
+      transition: stroke 0.2s, stroke-width 0.2s;
+    }
+
+    .node-box.selected {
+      stroke: var(--accent-cyan) !important;
+      stroke-width: 2.5 !important;
+      filter: drop-shadow(0 0 10px rgba(0, 242, 254, 0.7));
+    }
+
+    .node-box.node-warn {
+      stroke: var(--accent-warn) !important;
+      filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.7)) !important;
+    }
+
+    .node-box.node-crit {
+      stroke: var(--accent-crit) !important;
+      animation: alertGlow 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes alertGlow {
+      from { filter: drop-shadow(0 0 4px var(--accent-crit)); }
+      to { filter: drop-shadow(0 0 16px var(--accent-crit)); }
+    }
+
+    .node-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      fill: var(--text-main);
+    }
+
+    .node-sub {
+      font-size: 9.5px;
+      font-family: var(--font-mono);
+      fill: var(--text-muted);
+    }
+
+    .node-stat {
+      font-size: 9px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      fill: var(--accent-cyan);
+    }
+
+    .status-dot {
+      r: 3.5;
+    }
+
+    .dot-online { fill: var(--accent-green); filter: drop-shadow(0 0 4px var(--accent-green)); }
+    .dot-warn { fill: var(--accent-warn); filter: drop-shadow(0 0 4px var(--accent-warn)); }
+    .dot-crit { fill: var(--accent-crit); filter: drop-shadow(0 0 4px var(--accent-crit)); }
+
+    .node-service-pill {
+      font-size: 8px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      fill: var(--accent-cyan);
+    }
+
+    /* ══════ SIDE PANEL: PORT & DEVICE INSPECTOR ══════ */
+    .side-inspector {
+      width: 420px;
+      background: var(--bg-panel);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--card-shadow);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .inspector-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .inspector-title-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .inspector-title-wrap h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .inspector-title-wrap p {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .inspector-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Specs Box chung */
+    .inspector-hw-specs {
+      padding: 10px 18px;
+      background: rgba(0, 0, 0, 0.25);
+      border-bottom: 1px solid var(--border-color);
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      font-size: 0.72rem;
+    }
+
+    .hw-metric .label {
+      color: var(--text-muted);
+      font-size: 0.65rem;
+    }
+
+    .hw-metric .val {
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--text-main);
+      margin-top: 2px;
+    }
+
+    /* Detailed Hardware & Tech Specs Box (Mới nâng cấp cực chi tiết) */
+    .detailed-specs-container {
+      padding: 12px 18px;
+      background: rgba(0, 242, 254, 0.03);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .specs-section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .specs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 12px;
+      font-size: 0.72rem;
+    }
+
+    .spec-entry {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .spec-entry .k {
+      color: var(--text-muted);
+      font-size: 0.65rem;
+    }
+
+    .spec-entry .v {
+      font-weight: 600;
+      font-family: var(--font-mono);
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Quick Market Preset Bar in Side Inspector */
+    .inspector-quick-preset-bar {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 2px;
+    }
+
+    .quick-preset-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      letter-spacing: 0.04em;
+    }
+
+    .quick-preset-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .form-select-sm {
+      padding: 6px 8px;
+      font-size: 0.72rem;
+      border-radius: 6px;
+      background: rgba(13, 22, 41, 0.85);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      width: 100%;
+      outline: none;
+      cursor: pointer;
+    }
+    .form-select-sm:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 8px rgba(0, 242, 254, 0.3);
+    }
+
+    .btn-edit-all-specs {
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.16) 0%, rgba(59, 130, 246, 0.22) 100%);
+      border: 1px solid var(--accent-cyan);
+      color: #e0f2fe;
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      margin-top: 6px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 8px rgba(0, 242, 254, 0.15);
+    }
+
+    .btn-edit-all-specs:hover {
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.32) 0%, rgba(59, 130, 246, 0.38) 100%);
+      border-color: #38bdf8;
+      box-shadow: 0 4px 14px rgba(0, 242, 254, 0.35);
+      transform: translateY(-1px);
+      color: #ffffff;
+    }
+
+    /* Market Preset Header Card in Tab 2 */
+    .market-preset-header-card {
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.12) 0%, rgba(59, 130, 246, 0.08) 100%);
+      border: 1px solid rgba(0, 242, 254, 0.32);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .preset-label-group {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .preset-icon {
+      font-size: 1.15rem;
+      line-height: 1.2;
+    }
+
+    .preset-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+    }
+
+    .preset-subtitle {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .form-select-preset {
+      border-color: rgba(0, 242, 254, 0.4);
+      background: rgba(13, 22, 41, 0.95);
+      font-weight: 600;
+      color: #e0f2fe;
+    }
+    .form-select-preset:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+    }
+
+    /* Integrated Services List Widget */
+    .services-tags-wrapper {
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .services-tags-wrapper .section-mini-title {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .service-chips-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .service-chip-badge {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #93c5fd;
+      border-radius: 6px;
+      padding: 2px 7px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .port-section-header {
+      padding: 10px 16px 6px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .port-list-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 14px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .port-list-container::-webkit-scrollbar {
+      width: 5px;
+    }
+    .port-list-container::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+
+    .port-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .port-card:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: var(--border-highlight);
+    }
+
+    .port-card.port-up {
+      border-left: 3px solid var(--accent-green);
+    }
+
+    .port-card.port-down {
+      border-left: 3px solid #64748b;
+      opacity: 0.6;
+    }
+
+    .port-card.port-alert {
+      border-left: 3px solid var(--accent-crit);
+      background: rgba(239, 68, 68, 0.08);
+    }
+
+    .port-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .port-num-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-color);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-cyan);
+      flex-shrink: 0;
+    }
+
+    .port-device-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .port-device-info .device-name {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .port-device-info .device-meta {
+      font-size: 0.66rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .port-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-port-action {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .btn-port-action:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--accent-cyan);
+    }
+    .btn-port-action.delete:hover {
+      color: var(--accent-crit);
+    }
+
+    .port-traffic-right {
+      text-align: right;
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+
+    .traffic-rx {
+      font-size: 0.7rem;
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    .traffic-tx {
+      font-size: 0.7rem;
+      color: var(--accent-purple);
+      font-weight: 600;
+    }
+
+    .traffic-down-badge {
+      font-size: 0.66rem;
+      color: #94a3b8;
+    }
+
+    /* ══════ BOTTOM DRAWER / EVENT LOG ══════ */
+    .event-log-bar {
+      margin: 0 24px 20px 24px;
+      background: var(--bg-panel);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 0.78rem;
+    }
+
+    .log-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+    }
+
+    .log-badge.crit { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid var(--accent-crit); }
+    .log-badge.warn { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid var(--accent-warn); }
+    .log-badge.info { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid var(--accent-blue); }
+
+    .log-ticker {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      color: var(--text-main);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    /* ══════ MODAL STYLES (ĐƯỢC NÂNG CẤP TABS CHUYÊN NGHIỆP) ══════ */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(8px);
+      z-index: 500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 680px;
+      background: var(--bg-panel-solid);
+      border: 1px solid var(--border-highlight);
+      border-radius: 16px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 242, 254, 0.2);
+      overflow: hidden;
+      animation: modalSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalSlideIn {
+      from { transform: translateY(20px) scale(0.96); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .modal-header h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.2rem;
+      line-height: 1;
+      padding: 4px;
+      border-radius: 6px;
+    }
+    .modal-close-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Modal Navigation Tabs */
+    .modal-tabs {
+      display: flex;
+      background: rgba(0, 0, 0, 0.3);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0 20px;
+      gap: 8px;
+    }
+
+    .modal-tab-btn {
+      background: transparent;
+      border: none;
+      padding: 11px 16px;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .modal-tab-btn:hover {
+      color: var(--text-main);
+    }
+
+    .modal-tab-btn.active {
+      color: var(--accent-cyan);
+      border-bottom-color: var(--accent-cyan);
+    }
+
+    .modal-body {
+      padding: 20px;
+      max-height: 68vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .tab-content-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tab-content-panel.active {
+      display: flex;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-label span.req {
+      color: var(--accent-crit);
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text-main);
+      font-size: 0.82rem;
+      font-family: var(--font-main);
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 10px rgba(0, 242, 254, 0.25);
+    }
+
+    .category-helper-card {
+      background: rgba(0, 242, 254, 0.05);
+      border: 1px solid rgba(0, 242, 254, 0.2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.74rem;
+      color: #bae6fd;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+
+    .checkbox-item input {
+      accent-color: var(--accent-cyan);
+      cursor: pointer;
+    }
+
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast-msg {
+      background: #090e1c;
+      border: 1px solid var(--accent-cyan);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8), 0 0 12px rgba(0, 242, 254, 0.3);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: toastIn 0.3s ease-out;
+      pointer-events: auto;
+    }
+
+    @keyframes toastIn {
+      from { transform: translateX(50px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* SNMP Tooltip */
+    .snmp-tooltip {
+      position: fixed;
+      pointer-events: none;
+      background: #090e1c;
+      border: 1px solid var(--accent-cyan);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 242, 254, 0.3);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+      color: #e2e8f0;
+      z-index: 1000;
+      display: none;
+      max-width: 320px;
+      line-height: 1.4;
+    }
+
+    .snmp-tooltip strong {
+      color: var(--accent-cyan);
+      display: block;
+      margin-bottom: 4px;
+      font-family: var(--font-main);
+      font-size: 0.78rem;
+    }
+
+    .snmp-tooltip .oid-item {
+      color: #94a3b8;
+      margin: 2px 0;
+    }
+
+    .snmp-tooltip .oid-val {
+      color: #38bdf8;
+    }
+
+    @media (max-width: 1024px) {
+      .viewport-wrapper {
+        flex-direction: column;
+      }
+      .side-inspector {
+        width: 100%;
+        height: 420px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER / TOOLBAR -->
+  <header class="top-header">
+    <div class="brand-group">
+      <div class="brand-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+          <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+          <line x1="6" y1="6" x2="6.01" y2="6"></line>
+          <line x1="6" y1="18" x2="6.01" y2="18"></line>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>
+          ENTERPRISE LAN TOPOLOGY MONITOR
+          <span class="badge-protocol">SNMP v2c/v3</span>
+        </h1>
+        <p>Quản trị Thông Số Kỹ Thuật Chi Tiết Cho Mọi Phân Hệ Mạng Doanh Nghiệp</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Search Box -->
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Tìm IP, Hostname, Model, Dịch vụ..." oninput="handleSearch(this.value)">
+      </div>
+
+      <!-- Sắp xếp kéo thả vị trí -->
+      <button class="btn" id="btnArrangeMode" onclick="toggleArrangeMode()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="5 9 2 12 5 15"></polyline>
+          <polyline points="9 5 12 2 15 5"></polyline>
+          <polyline points="15 19 12 22 9 19"></polyline>
+          <polyline points="19 9 22 12 19 15"></polyline>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <line x1="12" y1="2" x2="12" y2="22"></line>
+        </svg>
+        <span id="arrangeLabel">✥ Sắp xếp Vị trí</span>
+      </button>
+
+      <!-- Thêm Thiết Bị Mới (Chi Tiết) -->
+      <button class="btn btn-primary" onclick="openAddNodeModal()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>➕ Thêm Thiết Bị</span>
+      </button>
+
+      <!-- Quản Lý Cấu Hình JSON -->
+      <button class="btn" onclick="openJsonModal()" title="Xuất / Nhập cấu hình JSON">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="16 18 22 12 16 6"></polyline>
+          <polyline points="8 6 2 12 8 18"></polyline>
+        </svg>
+        <span>Cấu hình JSON</span>
+      </button>
+
+      <!-- Đổi Theme -->
+      <button class="btn" id="btnThemeToggle" onclick="toggleTheme()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+        </svg>
+        <span id="themeLabel">Theme: Neon</span>
+      </button>
+
+      <!-- Tự xoay Switch -->
+      <button class="btn" id="btnAutoRotate" onclick="toggleAutoRotate()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+        </svg>
+        <span>Tự xoay (6s)</span>
+      </button>
+
+      <!-- Bơm tải đột biến -->
+      <button class="btn btn-danger-outline" id="btnSimulateSurge" onclick="simulateTrafficSurge()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        <span>Bơm tải (Surge)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- CATEGORY FILTER CHIPS -->
+  <section class="filter-bar">
+    <div class="filter-chip active" onclick="setCategoryFilter('all', this)">
+      <span>Tất cả thiết bị</span>
+      <span class="badge-protocol" id="countFilterAll">11</span>
+    </div>
+    <div class="filter-chip" onclick="setCategoryFilter('switch', this)">
+      <span>🖧 Switch & Router</span>
+      <span class="badge-protocol" id="countFilterSwitch">5</span>
+    </div>
+    <div class="filter-chip" onclick="setCategoryFilter('wireless', this)">
+      <span>📡 Mạng Không Dây (WiFi)</span>
+      <span class="badge-protocol" id="countFilterWifi">2</span>
+    </div>
+    <div class="filter-chip" onclick="setCategoryFilter('server', this)">
+      <span>🖥️ Máy Chủ & Storage</span>
+      <span class="badge-protocol" id="countFilterServer">2</span>
+    </div>
+    <div class="filter-chip" onclick="setCategoryFilter('printer', this)">
+      <span>🖨️ Máy In Mạng (MFP)</span>
+      <span class="badge-protocol" id="countFilterPrinter">1</span>
+    </div>
+    <div class="filter-chip" onclick="setCategoryFilter('service', this)">
+      <span>⚙️ Dịch Vụ Mạng (DNS/DHCP/VPN)</span>
+      <span class="badge-protocol" id="countFilterService">1</span>
+    </div>
+  </section>
+
+  <!-- KPI SUMMARY CARDS -->
+  <section class="kpi-container">
+    <div class="kpi-card">
+      <div class="kpi-info">
+        <div class="kpi-label">Tổng Băng Thông WAN (In/Out)</div>
+        <div class="kpi-val" id="kpiWanTraffic">↓ 642 Mbps  ↑ 184 Mbps</div>
+        <div class="kpi-sub" id="kpiWanSub">
+          <span style="color:var(--accent-green)">● ISP1 VNPT</span> (Active) + ISP2 Viettel
+        </div>
+      </div>
+      <svg class="kpi-chart" viewBox="0 0 60 30">
+        <path d="M0,25 Q15,5 30,18 T60,8" fill="none" stroke="var(--accent-cyan)" stroke-width="2"/>
+      </svg>
+    </div>
+
+    <div class="kpi-card kpi-green">
+      <div class="kpi-info">
+        <div class="kpi-label">Tổng Thiết Bị & Cổng Mạng</div>
+        <div class="kpi-val" id="kpiPortRatio">86 / 96 Up (89.5%)</div>
+        <div class="kpi-sub" id="kpiDevicesSub">
+          11 Nodes Đang Hoạt Động
+        </div>
+      </div>
+      <svg class="kpi-chart" viewBox="0 0 60 30">
+        <path d="M0,20 L15,18 L30,8 L45,12 L60,4" fill="none" stroke="var(--accent-green)" stroke-width="2"/>
+      </svg>
+    </div>
+
+    <div class="kpi-card" id="cardCoreLoad">
+      <div class="kpi-info">
+        <div class="kpi-label">Tải Cisco C9300 Core Stack</div>
+        <div class="kpi-val" id="kpiCoreLoad">2.41 Gbps / 40G</div>
+        <div class="kpi-sub">
+          CPU: 18% | RAM: 34% | Temp: 38°C
+        </div>
+      </div>
+      <svg class="kpi-chart" viewBox="0 0 60 30">
+        <path d="M0,24 Q10,12 25,18 T60,6" fill="none" stroke="var(--accent-purple)" stroke-width="2"/>
+      </svg>
+    </div>
+
+    <div class="kpi-card kpi-warn" id="cardAlertCount">
+      <div class="kpi-info">
+        <div class="kpi-label">Cảnh Báo Lưu Lượng Tầng (Tier Floors)</div>
+        <div class="kpi-val" id="kpiAlertCount">1 Cảnh Báo Sàn</div>
+        <div class="kpi-sub" id="kpiAlertSub">
+          Gi1/0/4 (TrueNAS) vượt ngưỡng 200Mbps
+        </div>
+      </div>
+      <svg class="kpi-chart" viewBox="0 0 60 30">
+        <path d="M0,22 L20,20 L35,6 L45,14 L60,2" fill="none" stroke="var(--accent-warn)" stroke-width="2"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- VIEWPORT: TOPOLOGY CANVAS + PORT INSPECTOR -->
+  <main class="viewport-wrapper">
+    <!-- Canvas Area -->
+    <div class="canvas-container">
+      <div class="arrange-mode-banner" id="arrangeBanner">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>CHẾ ĐỘ SẮP XẾP: Giữ chuột trái vào bất kỳ Node nào để kéo thả vị trí trên sơ đồ.</span>
+      </div>
+
+      <div class="canvas-overlay-ctrls">
+        <button class="icon-btn" title="Phóng to" onclick="zoomCanvas(1.15)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+        </button>
+        <button class="icon-btn" title="Thu nhỏ" onclick="zoomCanvas(0.85)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+        </button>
+        <button class="icon-btn" title="Đặt lại góc nhìn" onclick="resetCanvas()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+        </button>
+      </div>
+
+      <!-- Main Interactive SVG -->
+      <svg id="topo-svg-canvas" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id="gradCyanBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#00f2fe"/>
+            <stop offset="100%" stop-color="#3b82f6"/>
+          </linearGradient>
+          <linearGradient id="gradGreen" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#10b981"/>
+            <stop offset="100%" stop-color="#059669"/>
+          </linearGradient>
+          <linearGradient id="gradWarn" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#f59e0b"/>
+            <stop offset="100%" stop-color="#d97706"/>
+          </linearGradient>
+          <linearGradient id="gradCrit" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#ef4444"/>
+            <stop offset="100%" stop-color="#dc2626"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Dynamic Container for Pan/Zoom -->
+        <g id="viewport-group">
+          <!-- LINKS LAYER -->
+          <g id="links-layer"></g>
+
+          <!-- LINK SPEED BADGES LAYER -->
+          <g id="link-badges-layer"></g>
+
+          <!-- NODES LAYER -->
+          <g id="nodes-layer"></g>
+        </g>
+      </svg>
+    </div>
+
+    <!-- Right Side: Port & Detailed Device Inspector -->
+    <aside class="side-inspector">
+      <div class="inspector-header">
+        <div class="inspector-title-wrap">
+          <h3 id="inspectorNodeName">
+            <span id="inspectorIconWrap"></span>
+            <span id="inspectorTitleText">SW-CORE-C9300</span>
+          </h3>
+          <p id="inspectorNodeMeta">192.168.1.254 · Cisco Catalyst 9300-48P</p>
+        </div>
+        <div class="inspector-header-actions">
+          <span class="badge-protocol" id="inspectorNodeTier">TIER: INFRA</span>
+          <button class="btn btn-sm btn-primary" onclick="openEditCurrentNodeModal()" title="Chỉnh sửa thông số thiết bị này">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            <span>Sửa</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Specs Box chung -->
+      <div class="inspector-hw-specs">
+        <div class="hw-metric">
+          <div class="label">SNMP SysUpTime</div>
+          <div class="val" id="specUptime">48d 14h 22m</div>
+        </div>
+        <div class="hw-metric">
+          <div class="label" id="specMetric2Label">Cổng Hoạt Động</div>
+          <div class="val" id="specMetric2Val" style="color:var(--accent-green)">22 / 24 Port</div>
+        </div>
+        <div class="hw-metric">
+          <div class="label">Tổng Thông Lượng</div>
+          <div class="val" id="specThroughput">2.41 Gbps</div>
+        </div>
+      </div>
+
+      <!-- Khối Thông Số Kỹ Thuật Chi Tiết (Detailed Hardware & Network Specs) -->
+      <div class="detailed-specs-container" id="detailedSpecsContainer">
+        <div class="specs-section-title">
+          <span id="specsHeaderTitle">THÔNG SỐ KỸ THUẬT CHI TIẾT</span>
+          <span class="badge-protocol" id="specsCategoryBadge" style="font-size:0.6rem;">SWITCH LAYER 3</span>
+        </div>
+
+        <!-- Thanh Chọn Nhanh Chuẩn Thị Trường (Quick Market Preset Selector) -->
+        <div class="inspector-quick-preset-bar">
+          <label class="quick-preset-label">⚡ Mẫu Chuẩn Thị Trường (Presets):</label>
+          <div class="quick-preset-control">
+            <select class="form-select-sm" id="inspectorPresetSelect" onchange="applyInspectorPreset(this.value)">
+              <!-- Render động theo loại thiết bị đang chọn -->
+            </select>
+          </div>
+        </div>
+
+        <div class="specs-grid" id="specsGridContent">
+          <!-- Dynamic Grid Entries -->
+        </div>
+
+        <!-- Nút Mở Toàn Bộ Thông Số Kỹ Thuật -->
+        <button class="btn-edit-all-specs" onclick="openEditSpecsModal()" title="Mở bảng chỉnh sửa toàn bộ thông số kỹ thuật chi tiết">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          <span>Chỉnh Sửa Toàn Bộ Thông Số Kỹ Thuật</span>
+        </button>
+      </div>
+
+      <!-- Integrated Services List Widget -->
+      <div class="services-tags-wrapper" id="servicesWidget">
+        <div class="section-mini-title">DỊCH VỤ MẠNG TÍCH HỢP</div>
+        <div class="service-chips-list" id="servicesChipList">
+          <!-- Dynamic Services -->
+        </div>
+      </div>
+
+      <!-- Header quản lý danh sách Port -->
+      <div class="port-section-header">
+        <span id="portTableTitle">BẢNG CỔNG & THIẾT BỊ KẾT NỐI</span>
+        <button class="btn btn-sm" onclick="openAddPortModal()" style="font-size:0.68rem; padding: 3px 7px;">
+          ➕ Thêm Cổng
+        </button>
+      </div>
+
+      <!-- Switch Port Table / List -->
+      <div class="port-list-container" id="portList">
+        <!-- Rendered dynamically -->
+      </div>
+    </aside>
+  </main>
+
+  <!-- BOTTOM EVENT & LOG BAR -->
+  <div class="event-log-bar">
+    <span class="log-badge warn">SNMP EVENT</span>
+    <div class="log-ticker" id="logTicker">
+      [19:40:15] Hệ thống mạng doanh nghiệp sẵn sàng. Hỗ trợ cấu hình kỹ thuật chi tiết theo tiêu chuẩn Cisco, Fortinet, UniFi, Proxmox và Ricoh.
+    </div>
+    <div style="font-size: 0.72rem; color:var(--text-muted); font-family: var(--font-mono)">
+      Polling: 30s · OID: RFC 2863
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       MODAL: CHỈNH SỬA & THÊM MỚI THIẾT BỊ (NÂNG CẤP TABS CHI TIẾT)
+       ══════════════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="nodeModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="nodeModalTitle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-cyan)"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+          Cấu Hình Thiết Bị Mạng Chi Tiết
+        </h3>
+        <button class="modal-close-btn" onclick="closeModal('nodeModal')">&times;</button>
+      </div>
+
+      <!-- Modal Tabs Navigation -->
+      <div class="modal-tabs">
+        <button class="modal-tab-btn active" id="tabBtn1" onclick="switchModalTab('tab1', this)">
+          🌐 1. Nhận Diện & Kết Nối
+        </button>
+        <button class="modal-tab-btn" id="tabBtn2" onclick="switchModalTab('tab2', this)">
+          ⚡ 2. Thông Số Kỹ Thuật Chuyên Sâu
+        </button>
+        <button class="modal-tab-btn" id="tabBtn3" onclick="switchModalTab('tab3', this)">
+          🛡️ 3. SNMP & Dịch Vụ Mạng
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="editNodeId">
+
+        <!-- TAB 1: NHẬN DIỆN & KẾT NỐI -->
+        <div class="tab-content-panel active" id="tabPanel1">
+          <div class="category-helper-card">
+            <span>💡 <strong>Loại thiết bị:</strong> Chọn phân loại để hệ thống tự động tải bộ thông số kỹ thuật phần cứng tương ứng ở Tab 2.</span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tên Thiết Bị (Hostname) <span class="req">*</span></label>
+              <input type="text" class="form-input" id="editNodeName" placeholder="vd: SW-CORE-C9300 hoặc AP-WIFI6-U6PRO">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phân Loại Thiết Bị (Category) <span class="req">*</span></label>
+              <select class="form-select" id="editNodeCategory" onchange="handleCategoryChange(this.value)">
+                <option value="switch">🖧 Switch / Router / Firewall (Mạng Có Dây)</option>
+                <option value="wireless">📡 Thiết Bị Không Dây (WiFi AP / WLC Controller)</option>
+                <option value="server">🖥️ Máy Chủ (Server / Storage SAN/NAS / Virtualization)</option>
+                <option value="printer">🖨️ Máy In Mạng (Network Laser / Đa Năng MFP)</option>
+                <option value="service">⚙️ Cụm Dịch Vụ Mạng Chuyên Biệt (DNS/DHCP/VPN/WAF)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Địa Chỉ IP Quản Trị (Mgmt IP) <span class="req">*</span></label>
+              <input type="text" class="form-input" id="editNodeIp" placeholder="vd: 192.168.1.254">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Địa Chỉ MAC Phần Cứng</label>
+              <input type="text" class="form-input" id="editNodeMac" placeholder="vd: 00:1A:2B:3C:4D:5E">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Phân Tầng Mạng (Tier) <span class="req">*</span></label>
+              <select class="form-select" id="editNodeTier">
+                <option value="infra">Infra (Tầng Hạ Tầng Lõi: ISP / Firewall / Core Switch)</option>
+                <option value="sw">Switch (Tầng Phân Phối / Access / WLC Controller)</option>
+                <option value="port">Port / Endpoint (Máy Chủ / Máy In / Access Point / PC)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Trạng Thái Kết Nối <span class="req">*</span></label>
+              <select class="form-select" id="editNodeStatus">
+                <option value="up">Hoạt động bình thường (Online Up)</option>
+                <option value="standby">Dự phòng nóng (Standby / HA Backup)</option>
+                <option value="warn">Cảnh báo tải / Warning</option>
+                <option value="alert">Sự cố / Báo động đỏ (Critical Alert)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Vị Trí Lắp Đặt / Tủ Rack</label>
+              <input type="text" class="form-input" id="editNodeLocation" placeholder="vd: Data Center Rack A1 - U14 hoặc Tầng 2">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tốc Độ Cổng / Băng Thông Uplink (Thị Trường)</label>
+              <input type="text" class="form-input" id="editNodeSpeed" list="market_speed_datalist" placeholder="vd: 10 Gbps SFP+ / 1 Gbps PoE+">
+              <datalist id="market_speed_datalist">
+                <option value="100 Mbps (Fast Ethernet 100BASE-TX)"></option>
+                <option value="1 Gbps (1000BASE-T Gigabit RJ45 / SFP)"></option>
+                <option value="2.5 Gbps (2.5GBASE-T mGig - Chuẩn AP WiFi 6/7)"></option>
+                <option value="5 Gbps (5GBASE-T Multi-Gigabit)"></option>
+                <option value="10 Gbps (10GBASE-T / 10G SFP+ Enterprise)"></option>
+                <option value="25 Gbps (25G SFP28 - Data Center / Server Uplink)"></option>
+                <option value="40 Gbps (40G QSFP+ Aggregation Core)"></option>
+                <option value="100 Gbps (100G QSFP28 Ultra Backbone)"></option>
+                <option value="400 Gbps (400G QSFP-DD Hyperscale Cloud)"></option>
+              </datalist>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" id="parentSelectGroup">
+              <label class="form-label">Kết Nối Uplink Tới Thiết Bị (Cha)</label>
+              <select class="form-select" id="editNodeParent">
+                <option value="">-- Không nối (Tự do / Gateway gốc) --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Lưu lượng RX ban đầu (bps)</label>
+              <input type="number" class="form-input" id="editNodeRx" placeholder="350000000">
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: THÔNG SỐ KỸ THUẬT CHUYÊN SÂU THEO LOẠI THIẾT BỊ -->
+        <div class="tab-content-panel" id="tabPanel2">
+          <div id="dynamicExtraFields">
+            <!-- Được render động 100% bằng Javascript theo danh mục thiết bị -->
+          </div>
+        </div>
+
+        <!-- TAB 3: SNMP & DỊCH VỤ MẠNG TÍCH HỢP -->
+        <div class="tab-content-panel" id="tabPanel3">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Phiên Bản Giao Thức SNMP</label>
+              <select class="form-select" id="editSnmpVersion">
+                <option value="v2c">SNMP v2c (Community String)</option>
+                <option value="v3">SNMP v3 (User Auth SHA / Priv AES)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Chuỗi Community (Read-Only) / Auth Pass</label>
+              <input type="text" class="form-input" id="editSnmpCommunity" placeholder="ro_snmp_secret" value="ro_public_corp">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Cổng SNMP Port (Mặc định: 161 UDP)</label>
+              <input type="number" class="form-input" id="editSnmpPort" value="161">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Chu Kỳ Polling Giám Sát (Giây)</label>
+              <select class="form-select" id="editSnmpPollInterval">
+                <option value="15">15 Giây (Real-time Critical)</option>
+                <option value="30" selected>30 Giây (Tiêu chuẩn đề xuất)</option>
+                <option value="60">60 Giây (Tiết kiệm tải CPU)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Các Dịch Vụ Mạng Tích Hợp Trên Thiết Bị Này</label>
+            <div class="checkbox-grid">
+              <label class="checkbox-item"><input type="checkbox" name="services" value="DNS"> 🌐 DNS Resolver (Port 53)</label>
+              <label class="checkbox-item"><input type="checkbox" name="services" value="DHCP"> 📡 DHCP Server (Port 67/68)</label>
+              <label class="checkbox-item"><input type="checkbox" name="services" value="VPN"> 🔒 VPN Gateway (WireGuard/IPsec)</label>
+              <label class="checkbox-item"><input type="checkbox" name="services" value="RADIUS"> 🛡️ 802.1X / RADIUS (Port 1812)</label>
+              <label class="checkbox-item"><input type="checkbox" name="services" value="NTP"> ⏰ NTP Time (Port 123)</label>
+              <label class="checkbox-item"><input type="checkbox" name="services" value="SYSLOG"> 📜 Syslog / SIEM (Port 514)</label>
+              <label class="checkbox-item"><input type="checkbox" name="services" value="WAF"> 🛡️ WAF / Proxy (Port 80/443)</label>
+              <label class="checkbox-item"><input type="checkbox" name="services" value="SNMP" checked> 📊 SNMP Agent (Port 161)</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-danger-outline" id="btnDeleteNode" onclick="deleteCurrentNode()" style="margin-right:auto;">
+          🗑️ Xóa Thiết Bị
+        </button>
+        <button class="btn" onclick="closeModal('nodeModal')">Hủy</button>
+        <button class="btn btn-primary" onclick="saveNodeForm()">Lưu Cấu Hình Thiết Bị</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CỔNG MẠNG (PORT MODAL) -->
+  <div class="modal-overlay" id="portModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="portModalTitle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-cyan)"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          Chỉnh Sửa Cổng Mạng (Port Interface)
+        </h3>
+        <button class="modal-close-btn" onclick="closeModal('portModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editPortIndex">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Tên Cổng Interface <span class="req">*</span></label>
+            <input type="text" class="form-input" id="editPortId" placeholder="vd: Gi1/0/12 hoặc Te1/1/2">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tốc Độ Đàm Phán</label>
+            <input type="text" class="form-input" id="editPortSpeed" placeholder="vd: 1 Gbps / 10 Gbps">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Mô Tả Thiết Bị Cắm (Quy Chuẩn TÊN-IP) <span class="req">*</span></label>
+          <input type="text" class="form-input" id="editPortName" placeholder="vd: STORAGE-NAS-192.168.1.99">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Trạng Thái Cổng</label>
+            <select class="form-select" id="editPortStatus">
+              <option value="up">Link Up (Đang kết nối)</option>
+              <option value="down">Link Down (Rút cáp / Tắt cổng)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cảnh Báo Vượt Ngưỡng (Glow)</label>
+            <select class="form-select" id="editPortAlert">
+              <option value="false">Bình thường</option>
+              <option value="true">Bật Cảnh Báo Sàn (Crit / Glow đỏ)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Lưu Lượng Tải Xuống (RX bps)</label>
+            <input type="number" class="form-input" id="editPortRx" placeholder="150000000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Lưu Lượng Tải Lên (TX bps)</label>
+            <input type="number" class="form-input" id="editPortTx" placeholder="45000000">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('portModal')">Hủy</button>
+        <button class="btn btn-primary" onclick="savePortForm()">Lưu Cổng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CẤU HÌNH JSON -->
+  <div class="modal-overlay" id="jsonModal">
+    <div class="modal-box" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-cyan)"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+          Cấu Hình Mô Hình Mạng Doanh Nghiệp (JSON)
+        </h3>
+        <button class="modal-close-btn" onclick="closeModal('jsonModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.75rem; color: var(--text-muted);">
+          Dữ liệu JSON lưu trữ toàn bộ thông số kỹ thuật chi tiết của Switch, WiFi AP, Server, Máy in, Dịch vụ mạng và các cổng interface.
+        </p>
+        <textarea class="form-textarea" id="jsonConfigText" style="height: 240px;"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger-outline" onclick="resetToFactoryDefault()" style="margin-right:auto;">
+          Khôi Phục Mặc Định
+        </button>
+        <button class="btn" onclick="downloadJsonFile()">Tải File .json</button>
+        <button class="btn btn-primary" onclick="applyJsonConfig()">Áp Dụng Cấu Hình</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- SNMP TOOLTIP -->
+  <div class="snmp-tooltip" id="snmpTooltip"></div>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       JAVASCRIPT LOGIC & DETAILED SPECS ENGINE
+       ══════════════════════════════════════════════════════════════════ -->
+  <script>
+    const DEVICE_ICONS = {
+      switch: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>`,
+      wireless: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>`,
+      server: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/><line x1="10" y1="6" x2="18" y2="6"/><line x1="10" y1="18" x2="18" y2="18"/></svg>`,
+      printer: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>`,
+      service: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`
+    };
+
+    // ══════════════════════════════════════════════════════════════════
+    // THƯ VIỆN CẤU HÌNH PHẦN CỨNG & TỐC ĐỘ THỰC TẾ TRÊN THỊ TRƯỜNG HIỆN HÀNH
+    // (MARKET HARDWARE & REAL-WORLD SPEED PRESETS)
+    // ══════════════════════════════════════════════════════════════════
+    const MARKET_HARDWARE_PROFILES = {
+      switch: [
+        {
+          id: 'cisco_c9300_48uxm',
+          name: 'Cisco Catalyst 9300-48UXM (10G mGig / UPOE+)',
+          badge: '⚡ CISCO L3',
+          speed: '10 Gbps SFP+ Uplink',
+          tier: 'infra',
+          rx: 850000000,
+          specs: {
+            model: 'Cisco Catalyst 9300-48UXM mGig UPOE+',
+            portCount: '48x Multi-Gigabit (100M/1G/2.5G/5G/10G) + 4x 10G/25G SFP28',
+            poeBudget: '1440W (802.3bt Type 4 90W UPOE+ High-Power)',
+            switchingCapacity: '480 Gbps Wire-Speed (480G StackWise-480)',
+            layer: 'Layer 3 Full Routing (OSPF, BGP, EVPN-VXLAN, VRF)',
+            vlanCount: '4096 VLANs (Active: 24)',
+            security: '802.1X NAC, MACsec-256, TrustSec, DHCP Snooping, DAI'
+          }
+        },
+        {
+          id: 'cisco_nexus_93180yc',
+          name: 'Cisco Nexus 93180YC-FX (25G SFP28 / 100G Spine)',
+          badge: '🏢 DATA CENTER',
+          speed: '100 Gbps QSFP28 Uplink',
+          tier: 'infra',
+          rx: 2450000000,
+          specs: {
+            model: 'Cisco Nexus 93180YC-FX Data Center Leaf',
+            portCount: '48x 25G SFP28 + 6x 100G QSFP28 Spine Uplinks',
+            poeBudget: 'Không PoE (Data Center High-Throughput)',
+            switchingCapacity: '3.6 Tbps / 2.6 Bpps Wire-Speed',
+            layer: 'Layer 3 Data Center (VXLAN BGP EVPN, Multi-Site)',
+            vlanCount: '4096 VLANs (16M VXLAN VNIs)',
+            security: 'Control Plane Policing (CoPP), IEEE 802.1ae MACsec'
+          }
+        },
+        {
+          id: 'aruba_cx6300m',
+          name: 'Aruba CX 6300M 48SR5 (5G SmartRate / 50G Uplink)',
+          badge: '🚀 ARUBA L3',
+          speed: '50 Gbps SFP56 Uplink',
+          tier: 'sw',
+          rx: 920000000,
+          specs: {
+            model: 'Aruba CX 6300M 48-port SmartRate 5G PoE',
+            portCount: '48x 100M/1G/2.5G/5G mGig + 4x 50G SFP56 Uplinks',
+            poeBudget: '740W PoE+ (Lên tới 1440W Dual PSU 802.3bt)',
+            switchingCapacity: '880 Gbps Wire-Speed Capacity',
+            layer: 'Layer 3 Distribution (OSPF, BGP, VRRP, Dynamic Segmentation)',
+            vlanCount: '4096 VLANs',
+            security: 'Aruba ClearPass Policy Enforcer, 802.1X, MAC-Auth'
+          }
+        },
+        {
+          id: 'fortigate_100f',
+          name: 'Fortinet FortiGate 100F (10G NGFW / FortiLink)',
+          badge: '🛡️ FORTINET',
+          speed: '10 Gbps SFP+',
+          tier: 'infra',
+          rx: 780000000,
+          specs: {
+            model: 'Fortinet FortiGate 100F Next-Gen Firewall',
+            portCount: '2x 10G SFP+ FortiLink + 16x GbE RJ45 + 4x SFP',
+            poeBudget: 'Không PoE (Security Gateway)',
+            switchingCapacity: '20 Gbps Firewall / 1 Gbps Threat Protection',
+            layer: 'Layer 3 Gateway (IPsec VPN, SD-WAN, BGP, SSL-VPN)',
+            vlanCount: '4096 VLANs (VLAN Routing / VDOMs)',
+            security: 'FortiGuard IPS, AV, WAF, SSL Deep Inspection, Zero Trust ZTNA'
+          }
+        },
+        {
+          id: 'mikrotik_ccr2004',
+          name: 'MikroTik CCR2004-1G-12S+2XS (2x 25G / 12x 10G)',
+          badge: '🌐 ROUTEROS',
+          speed: '25 Gbps SFP28',
+          tier: 'infra',
+          rx: 650000000,
+          specs: {
+            model: 'MikroTik Cloud Core Router CCR2004-1G-12S+2XS',
+            portCount: '12x 10G SFP+ + 2x 25G SFP28 + 1x GbE RJ45',
+            poeBudget: 'Không PoE (Core Router)',
+            switchingCapacity: '128 Gbps Wire-Speed (AL32400 Quad-Core 1.7GHz)',
+            layer: 'Layer 3 Full BGP Carrier Grade Routing (RouterOS v7)',
+            vlanCount: '4096 VLANs (Bridge HW Offload)',
+            security: 'FastPath Firewall, WireGuard, IPsec IKEv2 HW Offload'
+          }
+        },
+        {
+          id: 'cisco_c9200l_24p',
+          name: 'Cisco Catalyst 9200L-24P-4G (1G PoE+ 370W)',
+          badge: '🔌 ACCESS SW',
+          speed: '1 Gbps SFP Uplink',
+          tier: 'sw',
+          rx: 185000000,
+          specs: {
+            model: 'Cisco Catalyst 9200L-24P-4G Access Switch',
+            portCount: '24x 10/100/1000M PoE+ + 4x 1G SFP Uplinks',
+            poeBudget: '370W PoE+ (802.3at 30W/port)',
+            switchingCapacity: '56 Gbps Wire-Speed (StackWise-80: 80G)',
+            layer: 'Layer 2+ với Routed Access (Static Route, RIP, OSPF Stub)',
+            vlanCount: '4096 VLANs (Active: 1024)',
+            security: 'IEEE 802.1X, Port Security, Private VLAN, DHCP Snooping'
+          }
+        }
+      ],
+
+      wireless: [
+        {
+          id: 'unifi_u7_promax',
+          name: 'UniFi U7 Pro Max (WiFi 7 Tri-Band 18.6 Gbps / 2.5G mGig)',
+          badge: '⚡ WIFI 7 MLO',
+          speed: '2.5 Gbps Multi-Gig PoE+',
+          tier: 'port',
+          rx: 480000000,
+          specs: {
+            model: 'Ubiquiti UniFi U7 Pro Max Tri-Band AP',
+            wifiStandards: 'WiFi 7 (802.11be) Tri-Band 320MHz MLO - 18.6 Gbps',
+            mimo: '4x4 MU-MIMO (6 GHz) + 4x4 (5 GHz) + 2x2 (2.4 GHz)',
+            ssids: 'CORP-WPA3-ENT, CORP-IOT, GUEST-PORTAL (VLAN 10,20,99)',
+            coverage: 'Bán kính 35m xuyên tường (Antenna Gain: 6 dBi)',
+            clientsActive: '500+ Concurrent Clients (High-Density)',
+            roaming: '802.11k/v/r Fast Roaming + Band Steering + BSS Coloring',
+            powerMethod: 'PoE+ 802.3at (Tiêu thụ 21W)'
+          }
+        },
+        {
+          id: 'cisco_c9136_axe',
+          name: 'Cisco Catalyst 9136 AXE (WiFi 6E 10.2 Gbps / Dual 5GbE)',
+          badge: '📡 CISCO 6E',
+          speed: '5 Gbps Multi-Gig PoE++',
+          tier: 'port',
+          rx: 350000000,
+          specs: {
+            model: 'Cisco Catalyst 9136 AXE Enterprise AP',
+            wifiStandards: 'WiFi 6E (802.11ax) Tri-Band 6 GHz 160MHz - 10.2 Gbps',
+            mimo: '8x8:8 MU-MIMO (5 GHz) + 4x4:4 (6 GHz) + 4x4:4 (2.4 GHz)',
+            ssids: 'CORP-SECURE (802.1X), EXECUTIVE, GUEST-WIFI',
+            coverage: 'Bán kính 30m trong nhà (Cisco CleanAir Pro Spectrum)',
+            clientsActive: '400+ Concurrent Clients (Zero-Wait DFS)',
+            roaming: 'Cisco Fastlane iOS, 802.11r FT, PMKID Caching',
+            powerMethod: '802.3bt PoE++ (UPOE 60W / 47.3W max)'
+          }
+        },
+        {
+          id: 'unifi_u6_pro',
+          name: 'UniFi U6-Pro Enterprise (WiFi 6 5.3 Gbps / 4x4 MU-MIMO)',
+          badge: '📶 UNIFI WIFI6',
+          speed: '1 Gbps Gigabit PoE+',
+          tier: 'port',
+          rx: 220000000,
+          specs: {
+            model: 'Ubiquiti UniFi U6-Pro Enterprise Access Point',
+            wifiStandards: 'WiFi 6 (802.11ax) Dual-Band 4x4 MU-MIMO - 5.3 Gbps',
+            mimo: '4x4 MU-MIMO (5 GHz) 160MHz + 2x2 MIMO (2.4 GHz)',
+            ssids: 'CORP-WIFI-5G, IOT-ISOLATED, GUEST-HOTSPOT',
+            coverage: 'Bán kính 25m trong nhà (Gain: 4 dBi)',
+            clientsActive: '350+ Concurrent Clients',
+            roaming: '802.11k/v/r Fast BSS Transition, WPA3-Personal/Enterprise',
+            powerMethod: 'PoE+ 802.3at (Tiêu thụ 13W)'
+          }
+        },
+        {
+          id: 'aruba_ap655',
+          name: 'Aruba AP-655 Campus (WiFi 6E Tri-Band 7.8 Gbps / 5G SmartRate)',
+          badge: '🏢 ARUBA 6E',
+          speed: '5 Gbps SmartRate PoE++',
+          tier: 'port',
+          rx: 290000000,
+          specs: {
+            model: 'Aruba AP-655 Tri-Radio WiFi 6E Campus AP',
+            wifiStandards: 'WiFi 6E (802.11ax) Tri-Band 6 GHz 160MHz - 7.8 Gbps',
+            mimo: '4x4:4 MU-MIMO Tri-Band (2.4GHz + 5GHz + 6GHz)',
+            ssids: 'ARUBA-CORP-SECURE, VOIP-PRIORITY, GUEST-PORTAL',
+            coverage: 'Bán kính 30m (Aruba ClientMatch + IoT BLE/Zigbee)',
+            clientsActive: '512 Clients Per Radio (Max 1024 Clients)',
+            roaming: 'Aruba ClientMatch AI, 802.11r/k/v, WPA3-Enterprise 192-bit',
+            powerMethod: 'PoE++ 802.3bt Class 6 (34.5W max)'
+          }
+        },
+        {
+          id: 'ruckus_r850',
+          name: 'Ruckus R850 Wi-Fi 6 (8x8 MU-MIMO 5.9 Gbps Ultra-Density)',
+          badge: '🏟️ RUCKUS 8x8',
+          speed: '5 Gbps Multi-Gig PoE++',
+          tier: 'port',
+          rx: 410000000,
+          specs: {
+            model: 'Ruckus R850 Ultra-High-Density 8x8 Access Point',
+            wifiStandards: 'WiFi 6 (802.11ax) Dual-Band 8x8 MU-MIMO - 5.9 Gbps',
+            mimo: '8x8:8 MU-MIMO (5 GHz) + 4x4:4 (2.4 GHz) BeamFlex+',
+            ssids: 'STADIUM-HIGH-DENSITY, VIP-WIFI, STAFF-SECURE',
+            coverage: 'Bán kính 45m (Ăng-ten thích ứng BeamFlex+ 4000 patterns)',
+            clientsActive: '1024 Concurrent Clients (Stadium / Event)',
+            roaming: 'SmartRoam, 802.11k/r/v, ChannelFly Spectrum AI',
+            powerMethod: '802.3bt PoE++ hoặc Dual 802.3at'
+          }
+        }
+      ],
+
+      server: [
+        {
+          id: 'dell_r760_nvme',
+          name: 'Dell PowerEdge R760 (112C/224T / 512GB DDR5 / NVMe Gen5 / 2x 25G)',
+          badge: '🔥 DELL GEN5',
+          speed: '25 Gbps SFP28 RoCEv2',
+          tier: 'port',
+          rx: 1650000000,
+          specs: {
+            formFactor: 'Dell PowerEdge R760 2U Dual-Socket Rackmount',
+            cpu: '2x Intel Xeon Platinum 8480+ (112 Cores / 224 Threads, 3.8 GHz Turbo)',
+            ram: '512 GB DDR5-4800 MHz ECC Registered (Max 8TB)',
+            storageRaid: 'PCIe Gen 5.0 NVMe Enterprise U.2 (14,000 MB/s, 2.5M IOPS)',
+            usableStorage: '61.4 TB NVMe Gen5 Usable (Hardware RAID-10 PERC H965i)',
+            os: 'VMware ESXi 8.0 Update 3 Enterprise Plus',
+            nics: '2x 25GbE SFP28 Mellanox ConnectX-6 RoCEv2 + 4x 10GbE SFP+',
+            vmCount: '48 VMs Enterprise (Oracle DB, ERP, Kubernetes Worker)'
+          }
+        },
+        {
+          id: 'dell_r750_cluster',
+          name: 'Dell PowerEdge R750 (56C/112T / 256GB RAM / NVMe Gen4 / 4x 10G)',
+          badge: '🖥️ DELL R750',
+          speed: '10 Gbps SFP+ LACP',
+          tier: 'port',
+          rx: 850000000,
+          specs: {
+            formFactor: 'Dell PowerEdge R750 2U Rackmount Server',
+            cpu: '2x Intel Xeon Gold 6330 (56 Cores / 112 Threads, 2.0 - 3.1 GHz)',
+            ram: '256 GB DDR4-3200 MHz ECC Registered',
+            storageRaid: 'PCIe Gen 4.0 NVMe U.2 Enterprise (7,000 MB/s, 1.2M IOPS)',
+            usableStorage: '15.3 TB NVMe ZFS Mirror + 40 TB SAS Backup',
+            os: 'Proxmox VE 8.2 (Debian Linux Kernel 6.8 KVM/LXC)',
+            nics: '4x 10GbE SFP+ Intel X710 LACP Bond (40 Gbps Aggregate)',
+            vmCount: '32 VMs KVM + 60 Docker Containers'
+          }
+        },
+        {
+          id: 'hpe_dl380_gen11',
+          name: 'HPE ProLiant DL380 Gen11 (64C/128T / 256GB DDR5 / 2x 25G)',
+          badge: '⚡ HPE GEN11',
+          speed: '25 Gbps SFP28',
+          tier: 'port',
+          rx: 1100000000,
+          specs: {
+            formFactor: 'HPE ProLiant DL380 Gen11 2U 2P Server',
+            cpu: '2x Intel Xeon Gold 6430 (64 Cores / 128 Threads, 60MB Cache)',
+            ram: '256 GB DDR5-4800 MHz ECC SmartMemory',
+            storageRaid: '16x 1.92TB SAS-3 12Gbps Enterprise SSD (Hardware RAID-6 MR416i)',
+            usableStorage: '26.8 TB SAS-3 SSD Usable',
+            os: 'Microsoft Windows Server 2025 Datacenter Edition',
+            nics: '2x 25GbE SFP28 Broadcom BCM57414 OCP3 + 4x 1GbE',
+            vmCount: '25 Hyper-V Virtual Machines & Active Directory Domain'
+          }
+        },
+        {
+          id: 'truenas_m50_san',
+          name: 'TrueNAS Enterprise M50 SAN/NAS (Dual-Controller HA / 4x 25G)',
+          badge: '💾 ZFS SAN HA',
+          speed: '2x 25GbE SFP28 NVMe-oF',
+          tier: 'port',
+          rx: 1850000000,
+          specs: {
+            formFactor: 'TrueNAS M50 Dual-Controller High-Availability 4U',
+            cpu: 'Dual Controller Active/Standby (2x Intel Xeon Silver)',
+            ram: '512 GB ECC DDR4 TrueNAS ZFS ARC Cache',
+            storageRaid: 'All-Flash NVMe-oF SAN Storage (100 Gbps RDMA RoCEv2)',
+            usableStorage: '240 TB All-Flash Usable (ZFS RAID-Z2 Dual Parity)',
+            os: 'TrueNAS Enterprise OpenZFS 2.2 HA',
+            nics: '4x 25GbE SFP28 iSCSI / NVMe-oF / NFSv4.2',
+            vmCount: 'SAN Storage Target cấp cho 12 ESXi Hosts'
+          }
+        },
+        {
+          id: 'synology_rs3621xs',
+          name: 'Synology RS3621xs+ 12-Bay NAS (144TB Raw / Dual 10G SFP+)',
+          badge: '📁 SYNOLOGY NAS',
+          speed: '10 Gbps SFP+ Link',
+          tier: 'port',
+          rx: 480000000,
+          specs: {
+            formFactor: 'Synology RackStation RS3621xs+ 12-Bay 2U NAS',
+            cpu: 'Intel Xeon D-1541 8-Core 2.1 GHz (Turbo 2.7 GHz)',
+            ram: '64 GB DDR4 ECC UDIMM (Nâng cấp tối đa)',
+            storageRaid: 'SAS-3 12 Gbps 7200 RPM Enterprise HDD (260 MB/s, RAID-6/Z2)',
+            usableStorage: '144 TB Raw / 96 TB Usable (Synology RAID 6 Btrfs)',
+            os: 'Synology DiskStation Manager DSM 7.2 Enterprise',
+            nics: '2x 10GbE SFP+ Mellanox + 4x 1GbE RJ45 LACP',
+            vmCount: 'Backup Target: Veeam, Time Machine & File Server SMBv3'
+          }
+        }
+      ],
+
+      printer: [
+        {
+          id: 'ricoh_mp5055sp',
+          name: 'Ricoh MP 5055SP Enterprise MFP (50 ppm / A3-A4 / Scan 110 ipm)',
+          badge: '🖨️ RICOH 50PPM',
+          speed: '1 Gbps Gigabit Ethernet',
+          tier: 'port',
+          rx: 45000000,
+          specs: {
+            printerType: 'Laser Đa Năng Trắng Đen Công Nghiệp A3/A4 (In/Scan/Copy)',
+            printSpeed: '50 Trang/Phút (ppm) - Công nghiệp tốc độ cao Ricoh MP 5055',
+            resolution: '1200 x 1200 dpi True Laser Resolution',
+            tonerStatus: 'Toner Black: 92% · Drum Unit: 96% (Công suất 24,000 trang)',
+            paperTrays: 'Khay 1 (550 tờ A4), Khay 2 (550 tờ A3), Khay phụ 100 tờ',
+            protocols: 'IPP/IPPS SSL, LPD, RAW Port 9100, Apple AirPrint, Mopria',
+            scanFeatures: 'Scan-to-Email, SMBv3 Folder, OCR PDF · Tốc độ quét 110 ipm',
+            memoryStorage: '2 GB RAM + 320 GB HDD Mã Hóa Dữ Liệu Tự Động'
+          }
+        },
+        {
+          id: 'ricoh_mp3055sp',
+          name: 'Ricoh MP 3055SP Office (35 ppm / Khay đôi 1000 tờ)',
+          badge: '📠 RICOH 35PPM',
+          speed: '1 Gbps Gigabit Ethernet',
+          tier: 'port',
+          rx: 32000000,
+          specs: {
+            printerType: 'Laser Đa Năng MFP Văn Phòng A4/A3',
+            printSpeed: '35 Trang/Phút (ppm) - Đa năng A4/A3 tiêu chuẩn',
+            resolution: '1200 x 1200 dpi True Laser Resolution',
+            tonerStatus: 'Toner Black: 85% · Drum Unit: 89%',
+            paperTrays: 'Khay 1 (500 tờ A4), Khay 2 (500 tờ A3)',
+            protocols: 'IPP/IPPS, LPD, RAW 9100, AirPrint',
+            scanFeatures: 'Scan-to-Email (SMTP SSL), Scan-to-Folder SMBv3',
+            memoryStorage: '2 GB RAM + 320 GB Secure HDD'
+          }
+        },
+        {
+          id: 'canon_c3835i',
+          name: 'Canon iR ADV DX C3835i Color MFP (Màu 35 ppm / WiFi & GbE)',
+          badge: '🎨 CANON COLOR',
+          speed: '1 Gbps Gigabit + WiFi Dual-Band',
+          tier: 'port',
+          rx: 55000000,
+          specs: {
+            printerType: 'Laser Màu Đa Năng Thông Minh A3/A4 (Color MFP)',
+            printSpeed: '35 Trang/Phút (ppm) - Máy in màu doanh nghiệp Canon DX',
+            resolution: '1200 x 1200 dpi True Laser Resolution',
+            tonerStatus: 'Cyan: 88% · Magenta: 90% · Yellow: 85% · Black: 94%',
+            paperTrays: '4 Khay nạp tự động (2300 tờ) + Bộ đảo mặt tự động DADF',
+            protocols: 'IPPS, RAW, WSD, Universal Print Cloud, AirPrint, Mopria',
+            scanFeatures: 'Quét tài liệu màu 2 mặt 1 lượt 150 ipm, Tích hợp OCR đám mây',
+            memoryStorage: '3.5 GB RAM + 256 GB SSD Mã Hóa TPM 2.0'
+          }
+        },
+        {
+          id: 'hp_m776z_color',
+          name: 'HP Color LaserJet Ent M776z (Màu Siêu Tốc 65 ppm / 4 Khay)',
+          badge: '🚀 HP 65PPM',
+          speed: '1 Gbps Gigabit Ethernet',
+          tier: 'port',
+          rx: 68000000,
+          specs: {
+            printerType: 'Laser Màu Doanh Nghiệp Tốc Độ Cao A3/A4',
+            printSpeed: '65 Trang/Phút (ppm) - Máy in màu doanh nghiệp HP M776',
+            resolution: '1200 x 1200 dpi True Laser Resolution (HP ImageREt 4800)',
+            tonerStatus: 'Hộp mực HP TerraJet 4 màu: C:95% M:92% Y:90% K:98%',
+            paperTrays: '4 Khay giấy dung lượng lớn 2300 tờ + Đóng ghim hoàn thiện',
+            protocols: 'HP Jetdirect, IPP, IPPS, Apple AirPrint, HP Roam for Business',
+            scanFeatures: 'Scan-to-SharePoint, Scan-to-USB, Email SSL/TLS, SFTP',
+            memoryStorage: '5 GB RAM + 500 GB Secure Encrypted Hard Disk'
+          }
+        },
+        {
+          id: 'hp_t830_plotter',
+          name: 'HP DesignJet T830 CAD Plotter A0 (25s/A1 Bản Vẽ / Khổ 36 inch)',
+          badge: '📐 PLOTTER A0',
+          speed: '1 Gbps Gigabit Ethernet + WiFi',
+          tier: 'port',
+          rx: 52000000,
+          specs: {
+            printerType: 'Máy In & Quét Bản Vẽ Kỹ Thuật Khổ Lớn A0 (36-inch CAD/GIS)',
+            printSpeed: '25 Giây / Bản vẽ A1 (Máy in Plotter CAD HP DesignJet T830)',
+            resolution: '2400 x 1200 dpi Fine CAD / Graphics',
+            tonerStatus: 'Hộp mực HP 728: Matte Black 300ml (92%), CMY 130ml (88%)',
+            paperTrays: 'Bộ nạp cuộn giấy 36 inch (Roll Feed) + Khay nạp A3/A4 rời',
+            protocols: 'HP-GL/2, HP-RTL, TIFF, JPEG, CALS G4, URF, AirPrint',
+            scanFeatures: 'Quét màu bản vẽ kiến trúc 600 dpi Optical khổ 36 inch cuộn',
+            memoryStorage: '1 GB RAM + Wi-Fi Direct in trực tiếp từ iPad/Laptop'
+          }
+        }
+      ],
+
+      service: [
+        {
+          id: 'pfsense_netgate8200',
+          name: 'pfSense Netgate 8200 HA Gateway (18.5 Gbps FW / 10G SFP+)',
+          badge: '🔒 PFSENSE HA',
+          speed: '10 Gbps SFP+',
+          tier: 'infra',
+          rx: 950000000,
+          specs: {
+            serviceType: 'Next-Gen Firewall, Multi-WAN SD-WAN & WireGuard Gateway',
+            ports: 'Port 53 (DNS), 67 (DHCP), 51820 (WireGuard), 443 (WebGUI)',
+            dhcpScope: '192.168.1.100 - 192.168.1.250 / 24 (Default Lease: 86400s)',
+            vpnType: 'WireGuard & IPsec IKEv2 (AES-256-GCM / ChaCha20 HW Crypto)',
+            haMode: 'CARP Virtual IP HA (Active/Standby Cluster XML-RPC Sync)',
+            throughput: '18.5 Gbps Firewall / 4.2 Gbps IPS (Netgate 8200)'
+          }
+        },
+        {
+          id: 'fortigate_200f_ngfw',
+          name: 'Fortinet FortiGate 200F Cluster (27 Gbps FW / Sub-second Failover)',
+          badge: '🛡️ FORTIGATE 200F',
+          speed: '2x 10G SFP+ Active-Passive',
+          tier: 'infra',
+          rx: 1350000000,
+          specs: {
+            serviceType: 'Enterprise NGFW, IPSec VPN, SSL Inspection & SD-WAN',
+            ports: 'Port 443 (SSL VPN), 500/4500 (IPsec), 80/443 (WAF/Proxy)',
+            dhcpScope: '10.10.0.100 - 10.10.255.200 / 16 (Enterprise DHCP Scope)',
+            vpnType: 'FortiClient SSL-VPN & IPsec Hub-and-Spoke AES-256',
+            haMode: 'FortiGate HA Active-Passive (Sub-second Session Failover)',
+            throughput: '27 Gbps Firewall / 3.5 Gbps Threat (FortiGate 200F)'
+          }
+        },
+        {
+          id: 'f5_bigip_i4800',
+          name: 'F5 BIG-IP i4800 ADC / WAF (25 Gbps L7 WAF / 40,000 SSL TPS)',
+          badge: '⚖️ F5 BIG-IP',
+          speed: '40 Gbps QSFP+ Uplink',
+          tier: 'infra',
+          rx: 1850000000,
+          specs: {
+            serviceType: 'Application Delivery Controller (L4-L7 ADC & Advanced WAF)',
+            ports: 'Port 80, 443, 8443, 8080 (L7 Virtual Servers Pool)',
+            dhcpScope: 'N/A (Load Balancer VIP Pool 172.16.0.1 - 172.16.0.50)',
+            vpnType: 'F5 BIG-IP APM (Access Policy Manager SSL VPN & SSO SAML)',
+            haMode: 'Device Service Clustering (DSC) Active-Standby Sync-Failover',
+            throughput: '25 Gbps L7 WAF / ADC (F5 BIG-IP i4800)'
+          }
+        },
+        {
+          id: 'coredns_freeipa',
+          name: 'CoreDNS & FreeIPA Identity Cluster (50,000 qps / RADIUS 802.1X)',
+          badge: '🔑 AUTH & DNS',
+          speed: '10 Gbps SFP+ Bond',
+          tier: 'port',
+          rx: 320000000,
+          specs: {
+            serviceType: 'Core DNS, DHCP Kea, FreeIPA Kerberos, LDAP & RADIUS 802.1X',
+            ports: 'Port 53 (DNS TCP/UDP), 67 (DHCP), 389/636 (LDAPS), 1812 (RADIUS)',
+            dhcpScope: '192.168.10.50 - 192.168.10.220 / 24 (Dynamic DNS Sync)',
+            vpnType: 'RADIUS AAA 802.1X EAP-TLS cho WiFi & Switch Port Security',
+            haMode: 'Active-Active Anycast BGP DNS + Multi-Master LDAP Sync',
+            throughput: '10 Gbps Wire-Speed (50,000 Queries/sec DNS & Kerberos AAA)'
+          }
+        }
+      ]
+    };
+
+    // DỮ LIỆU GỐC CÓ ĐẦY ĐỦ THÔNG SỐ KỸ THUẬT CHUYÊN SÂU
+    const DEFAULT_NETWORK_DATA = {
+      nodes: [
+        {
+          id: 'isp1',
+          name: 'ISP 1 - VNPT Fiber',
+          ip: '113.161.45.10',
+          mac: 'A4:93:3F:88:12:01',
+          category: 'switch',
+          tier: 'infra',
+          x: 40,
+          y: 130,
+          status: 'up',
+          speed: '1 Gbps Leased Line',
+          rx: 642000000,
+          tx: 184000000,
+          oid: '1.3.6.1.2.1.31.1.1.1.6.1',
+          descr: 'Cổng quang FTTH quốc tế',
+          location: 'Phòng Máy Chủ - Tủ Rack A0',
+          services: ['BGP', 'SNMP'],
+          specs: {
+            model: 'VNPT GPON Optical ONT',
+            portCount: '4 Ports GbE',
+            throughput: '1.25 Gbps Full-Duplex',
+            layer: 'Layer 2 / Bridge',
+            firmware: 'VNPT-ONT-v4.2',
+            vlanCount: 'VLAN 100 (Internet), VLAN 200 (VoIP)'
+          }
+        },
+        {
+          id: 'isp2',
+          name: 'ISP 2 - Viettel Backup',
+          ip: '125.235.88.2',
+          mac: '00:90:7F:44:81:22',
+          category: 'switch',
+          tier: 'infra',
+          x: 40,
+          y: 450,
+          status: 'standby',
+          speed: '500 Mbps Backup',
+          rx: 12000000,
+          tx: 4500000,
+          oid: '1.3.6.1.2.1.31.1.1.1.6.2',
+          descr: 'Đường dự phòng Failover WAN',
+          location: 'Phòng Máy Chủ - Tủ Rack A0',
+          services: ['Failover', 'SNMP'],
+          specs: {
+            model: 'Viettel MetroNet Converter',
+            portCount: '2 Ports GbE',
+            throughput: '500 Mbps',
+            layer: 'Layer 2',
+            firmware: 'VTT-FW-v2.1',
+            vlanCount: 'VLAN 35 (MetroWAN)'
+          }
+        },
+        {
+          id: 'firewall',
+          name: 'pfSense HA Cluster',
+          ip: '192.168.1.1',
+          mac: '00:08:A2:0F:9C:11',
+          category: 'service',
+          tier: 'infra',
+          x: 250,
+          y: 290,
+          status: 'up',
+          speed: '10 Gbps SFP+',
+          rx: 654000000,
+          tx: 188500000,
+          oid: 'CARP Master · CPU: 12% · States: 14,208',
+          descr: 'Tường lửa biên & Gateway OSPF',
+          location: 'Tủ Rack A1 - U18/U19',
+          services: ['DNS', 'DHCP', 'VPN', 'WAF'],
+          specs: {
+            serviceType: 'Next-Gen Firewall & Security Gateway',
+            ports: 'Port 53, 67, 443, 51820',
+            dhcpScope: '192.168.1.100 - 192.168.1.240 / 24',
+            vpnType: 'WireGuard & IPsec IKEv2 (AES-256-GCM)',
+            haMode: 'CARP High Availability (Active/Standby)',
+            throughput: '18.5 Gbps Firewall / 4.2 Gbps IPS'
+          }
+        },
+        {
+          id: 'core_sw',
+          name: 'SW-CORE-C9300',
+          ip: '192.168.1.254',
+          mac: '70:69:79:33:41:80',
+          category: 'switch',
+          tier: 'infra',
+          x: 490,
+          y: 290,
+          status: 'up',
+          speed: '40 Gbps StackWise',
+          rx: 1850000000,
+          tx: 960000000,
+          oid: 'Cisco IOS-XE 17.6 · ifIndex: 10101',
+          descr: 'Core Switch Layer 3 - Catalyst 9300',
+          location: 'Tủ Rack A1 - U22',
+          services: ['VLAN', 'OSPF', 'SNMP'],
+          specs: {
+            model: 'Cisco Catalyst 9300-48P PoE+',
+            portCount: '48 Port GbE + 4 Port 10G SFP+ Uplink',
+            poeBudget: '740W PoE+ (802.3at)',
+            switchingCapacity: '480 Gbps / 360 Mpps',
+            layer: 'Layer 3 Full Routing (OSPF, BGP, EIGRP)',
+            vlanCount: '4096 VLANs (Active: 12)',
+            security: '802.1X NAC, DHCP Snooping, Dynamic ARP'
+          }
+        },
+        {
+          id: 'srv_proxmox',
+          name: 'SRV-PROXMOX-CLUSTER',
+          ip: '192.168.1.10',
+          mac: 'AC:1F:6B:22:90:3A',
+          category: 'server',
+          tier: 'port',
+          x: 750,
+          y: 80,
+          status: 'up',
+          speed: '2x 10Gbps LACP',
+          rx: 640000000,
+          tx: 320000000,
+          oid: 'Proxmox VE 8.1 Hypervisor',
+          descr: 'Cụm 3 Máy Chủ Ảo Hóa Enterprise',
+          location: 'Tủ Rack B1 - U10 đến U12',
+          services: ['DNS', 'NTP', 'SYSLOG'],
+          specs: {
+            formFactor: 'Dell PowerEdge R750 2U Rack',
+            cpu: '2x Intel Xeon Gold 6330 (56 Cores / 112 Threads)',
+            ram: '256 GB DDR4-3200 ECC Registered',
+            storageRaid: '8x 3.84TB NVMe SSD (Hardware RAID 10)',
+            os: 'Proxmox VE 8.2 (Debian 12 Bookworm)',
+            nics: '4x 10GbE SFP+ Intel X710 LACP',
+            powerSupply: '2x 1100W Redundant Titanium',
+            vmCount: '28 Máy Ảo (VMs) + 45 Docker Containers'
+          }
+        },
+        {
+          id: 'sw_srv',
+          name: 'SW-ServerRoom',
+          ip: '192.168.1.250',
+          mac: '00:1E:13:C2:55:01',
+          category: 'switch',
+          tier: 'sw',
+          x: 750,
+          y: 210,
+          status: 'alert',
+          speed: '10 Gbps Trunk',
+          rx: 840000000,
+          tx: 420000000,
+          oid: 'Cisco Nexus 10G SFP+',
+          descr: 'Top-of-Rack Switch Trung Tâm Dữ Liệu',
+          location: 'Tủ Rack B1 - U1',
+          services: ['STP', 'SNMP'],
+          specs: {
+            model: 'Cisco Nexus 93180YC-EX',
+            portCount: '48 Port 10G/25G SFP28 + 6 Port 100G QSFP28',
+            switchingCapacity: '3.6 Tbps / 2.6 Bpps',
+            layer: 'Layer 2/3 Data Center Top-of-Rack',
+            vlanCount: 'VLAN 10, 20, 30, 99 (Storage & Mgmt)',
+            security: 'Control Plane Policing, Port Security'
+          }
+        },
+        {
+          id: 'srv_truenas',
+          name: 'NAS-TRUENAS-STORAGE',
+          ip: '192.168.1.20',
+          mac: '00:25:90:E4:77:8C',
+          category: 'server',
+          tier: 'port',
+          x: 1010,
+          y: 80,
+          status: 'alert',
+          speed: '10 Gbps SFP+',
+          rx: 480000000,
+          tx: 250000000,
+          oid: 'TrueNAS SCALE Enterprise ZFS',
+          descr: 'Hệ Thống Lưu Trữ SAN/NAS 120TB',
+          location: 'Tủ Rack B2 - U14/U17',
+          services: ['NFS', 'iSCSI', 'SMB'],
+          specs: {
+            formFactor: 'Supermicro 4U 24-Bay SAS/SATA',
+            cpu: 'AMD EPYC 7302P (16 Cores / 32 Threads)',
+            ram: '128 GB DDR4 ECC Registered',
+            storageRaid: '24x 8TB Enterprise SAS HDD (ZFS RAID-Z2)',
+            usableStorage: '120 TB Raw / 88 TB Usable ZFS Pool',
+            os: 'TrueNAS SCALE 24.04 (Linux ZFS)',
+            nics: '2x 10GbE SFP+ Chelsio T520',
+            ipmi: 'Dedicated Supermicro IPMI 2.0 (192.168.1.21)'
+          }
+        },
+        {
+          id: 'sw_f1',
+          name: 'SW-Floor1-R&D',
+          ip: '192.168.1.251',
+          mac: 'F4:0F:1B:33:11:45',
+          category: 'switch',
+          tier: 'sw',
+          x: 750,
+          y: 350,
+          status: 'up',
+          speed: '2x 1Gbps LACP',
+          rx: 310000000,
+          tx: 85000000,
+          oid: 'Cisco C1000-48P PoE',
+          descr: 'Tầng 1: Phòng Kỹ thuật & R&D',
+          location: 'Tủ IDF Tầng 1',
+          services: ['PoE+', 'SNMP'],
+          specs: {
+            model: 'Cisco Catalyst 1000-48FP-4X',
+            portCount: '48 Port GbE PoE+ (370W) + 4x 10G SFP+',
+            switchingCapacity: '104 Gbps',
+            layer: 'Layer 2+ với Static Routing',
+            security: '802.1X, Private VLAN, Storm Control'
+          }
+        },
+        {
+          id: 'sw_ap',
+          name: 'WLC-UNIFI-CONTROLLER',
+          ip: '192.168.1.253',
+          mac: '74:83:C2:5F:99:A1',
+          category: 'wireless',
+          tier: 'sw',
+          x: 750,
+          y: 490,
+          status: 'up',
+          speed: '2x 1Gbps Uplink',
+          rx: 215000000,
+          tx: 68000000,
+          oid: 'UniFi Network Controller Enterprise',
+          descr: 'Bộ Điều Khiển Mạng WiFi Toàn Toà Nhà',
+          location: 'Tủ IDF Tầng 2',
+          services: ['RADIUS', 'DHCP', 'SNMP'],
+          specs: {
+            model: 'Ubiquiti UniFi Cloud Gateway Enterprise',
+            wifiStandards: 'WiFi 7 / WiFi 6E / WiFi 6 Quản Trị Tập Trung',
+            managedAps: '16 Access Points hoạt động',
+            ssids: 'CORP-SECURE (802.1X), GUEST-WIFI (Voucher), IOT',
+            maxClients: '2000 Concurrent Clients',
+            roaming: '802.11k/v/r Fast Roaming kích hoạt',
+            rfOptimization: 'AI Channel Auto-Tuning & Band Steering'
+          }
+        },
+        {
+          id: 'ap_openspace',
+          name: 'AP-R&D-WIFI6-U6PRO',
+          ip: '192.168.50.12',
+          mac: '68:D7:9A:12:44:88',
+          category: 'wireless',
+          tier: 'port',
+          x: 1010,
+          y: 490,
+          status: 'up',
+          speed: '1 Gbps PoE+',
+          rx: 65000000,
+          tx: 22000000,
+          oid: 'UniFi U6-Pro WiFi 6 AP',
+          descr: 'Access Point Không Dây Phòng R&D',
+          location: 'Trần Phòng R&D Tầng 1',
+          services: ['802.1X', 'WPA3'],
+          specs: {
+            model: 'Ubiquiti UniFi U6-Pro Ceiling Mount',
+            wifiStandards: 'WiFi 6 (802.11ax) Dual-Band',
+            mimo: '4x4 MU-MIMO (5 GHz) + 2x2 MIMO (2.4 GHz)',
+            throughput: '5.3 Gbps Aggregate Over-the-air Rate',
+            ssids: 'CORP-R&D-SECURE (VLAN 50)',
+            coverage: 'Bán kính 25m xuyên tường nhẹ',
+            powerMethod: 'PoE+ 802.3at (Tiêu thụ 13W)',
+            clientsActive: '46 Thiết Bị Kết Nối (32x 5GHz, 14x 2.4GHz)'
+          }
+        },
+        {
+          id: 'printer_central',
+          name: 'PRINTER-RICOH-MP3055',
+          ip: '192.168.20.50',
+          mac: '00:26:73:9B:EE:14',
+          category: 'printer',
+          tier: 'port',
+          x: 1010,
+          y: 350,
+          status: 'up',
+          speed: '1 Gbps Ethernet',
+          rx: 850000,
+          tx: 2100000,
+          oid: 'Ricoh MP 3055SP Multi-Function Printer',
+          descr: 'Máy In Laser Đa Năng Văn Phòng',
+          location: 'Khu vực In Ấn Tầng 2',
+          services: ['IPP', 'LPD', 'SNMP'],
+          specs: {
+            printerType: 'Laser Đa Năng Trắng Đen (In / Scan / Copy / Fax)',
+            printSpeed: '35 Trang/Phút (ppm) Khổ A4',
+            resolution: '1200 x 1200 dpi In / 600 dpi Scan',
+            paperTrays: 'Khay 1 (500 tờ A4), Khay 2 (500 tờ A3), Khay tay (100 tờ)',
+            tonerStatus: 'Toner Black: 86% · Drum Unit: 94%',
+            protocols: 'IPP/IPPS, LPD, RAW Port 9100, Apple AirPrint, Mopria',
+            scanFeatures: 'Scan-to-Email (SMTP), Scan-to-Folder (SMBv3/FTP)',
+            memoryStorage: '2 GB RAM + 320 GB HDD Mã Hóa Dữ Liệu'
+          }
+        }
+      ],
+      links: [
+        { from: 'isp1', to: 'firewall', label: 'WAN1: 642M ↓', rx: 642000000, tx: 184000000 },
+        { from: 'isp2', to: 'firewall', label: 'WAN2: 12M ↓', rx: 12000000, tx: 4500000 },
+        { from: 'firewall', to: 'core_sw', label: 'Trunk: 830M ↓', rx: 830000000, tx: 280000000 },
+        { from: 'core_sw', to: 'srv_proxmox', label: '20G LAG: 960M', rx: 640000000, tx: 320000000 },
+        { from: 'core_sw', to: 'sw_srv', label: '10G Uplink: 1.2G', rx: 840000000, tx: 420000000 },
+        { from: 'sw_srv', to: 'srv_truenas', label: '10G SAN: 730M', rx: 480000000, tx: 250000000 },
+        { from: 'core_sw', to: 'sw_f1', label: 'LACP: 395M', rx: 310000000, tx: 85000000 },
+        { from: 'sw_f1', to: 'printer_central', label: '1G LAN: 3M', rx: 850000, tx: 2100000 },
+        { from: 'core_sw', to: 'sw_ap', label: 'PoE Up: 283M', rx: 215000000, tx: 68000000 },
+        { from: 'sw_ap', to: 'ap_openspace', label: 'PoE+: 87M', rx: 65000000, tx: 22000000 }
+      ],
+      ports: {
+        'core_sw': [
+          { port: 'Te1/1/1', name: 'FIREWALL-PFSENSE-192.168.1.1', status: 'up', speed: '10 Gbps', rx: 830000000, tx: 280000000 },
+          { port: 'Te1/1/2', name: 'PROXMOX-VIRT-CLUSTER', status: 'up', speed: '10 Gbps', rx: 640000000, tx: 320000000 },
+          { port: 'Te1/1/3', name: 'UPLINK-SW-SERVER-192.168.1.250', status: 'up', speed: '10 Gbps', rx: 840000000, tx: 420000000 },
+          { port: 'Gi1/0/1', name: 'TRUNK-SW-FLOOR1-LAG1', status: 'up', speed: '1 Gbps', rx: 160000000, tx: 45000000 },
+          { port: 'Gi1/0/2', name: 'TRUNK-SW-FLOOR1-LAG2', status: 'up', speed: '1 Gbps', rx: 150000000, tx: 40000000 },
+          { port: 'Gi1/0/5', name: 'TRUNK-WLC-UNIFI-192.168.1.253', status: 'up', speed: '1 Gbps', rx: 215000000, tx: 68000000 },
+          { port: 'Gi1/0/6', name: 'HASS-SNMP-POLLER', status: 'up', speed: '1 Gbps', rx: 14500000, tx: 8200000 },
+          { port: 'Gi1/0/8', name: 'Cổng trống (Spare)', status: 'down', speed: 'Down', rx: 0, tx: 0 }
+        ],
+        'sw_srv': [
+          { port: 'Te1/0/1', name: 'TRUENAS-STORAGE-192.168.1.20', status: 'up', speed: '10 Gbps', rx: 480000000, tx: 250000000, alert: true },
+          { port: 'Te1/0/2', name: 'DATABASE-POSTGRES-192.168.1.25', status: 'up', speed: '10 Gbps', rx: 195000000, tx: 95000000 },
+          { port: 'Te1/0/3', name: 'AD-DOMAIN-CONTROLLER-192.168.1.5', status: 'up', speed: '1 Gbps', rx: 12500000, tx: 18200000 },
+          { port: 'Te1/0/4', name: 'CAM-NVR-FRIGATE-192.168.1.80', status: 'up', speed: '1 Gbps', rx: 78000000, tx: 5200000 },
+          { port: 'Te1/0/5', name: 'BACKUP-OFFSITE-STORAGE', status: 'down', speed: 'Down', rx: 0, tx: 0 }
+        ],
+        'sw_f1': [
+          { port: 'Gi1/0/1', name: 'DEV-WORKSTATION-01-192.168.10.11', status: 'up', speed: '1 Gbps', rx: 45000000, tx: 12000000 },
+          { port: 'Gi1/0/2', name: 'AI-TRAINING-RIG-192.168.10.88', status: 'up', speed: '2.5 Gbps', rx: 110000000, tx: 35000000 },
+          { port: 'Gi1/0/3', name: 'PRINTER-RICOH-MP3055', status: 'up', speed: '1 Gbps', rx: 850000, tx: 2100000 },
+          { port: 'Gi1/0/4', name: 'TEST-BENCH-IOT', status: 'down', speed: 'Down', rx: 0, tx: 0 }
+        ],
+        'sw_ap': [
+          { port: 'PoE-1', name: 'AP-LOBBY-CISCO-192.168.50.11', status: 'up', speed: '1 Gbps PoE+', rx: 32000000, tx: 8500000 },
+          { port: 'PoE-2', name: 'AP-R&D-WIFI6-U6PRO', status: 'up', speed: '1 Gbps PoE+', rx: 65000000, tx: 22000000 },
+          { port: 'PoE-3', name: 'AP-DIRECTOR-ROOM', status: 'up', speed: '1 Gbps PoE+', rx: 28000000, tx: 7200000 },
+          { port: 'PoE-4', name: 'AP-CANTEEN-GUEST', status: 'up', speed: '1 Gbps PoE+', rx: 55000000, tx: 18000000 }
+        ],
+        'srv_proxmox': [
+          { port: 'vmbr0', name: 'VIRTUAL-BRIDGE-LAN-VLAN10', status: 'up', speed: '10 Gbps Virt', rx: 320000000, tx: 180000000 },
+          { port: 'vmbr1', name: 'VIRTUAL-BRIDGE-DMZ-VLAN20', status: 'up', speed: '10 Gbps Virt', rx: 150000000, tx: 80000000 },
+          { port: 'vmbr2', name: 'CLUSTER-SYNC-COROSYNC', status: 'up', speed: '10 Gbps Virt', rx: 45000000, tx: 45000000 }
+        ],
+        'srv_truenas': [
+          { port: 'ix0', name: 'SAN-ISCSI-VM-DATASTORE', status: 'up', speed: '10 Gbps SFP+', rx: 320000000, tx: 180000000 },
+          { port: 'ix1', name: 'NAS-SMB-OFFICE-SHARE', status: 'up', speed: '10 Gbps SFP+', rx: 160000000, tx: 70000000 }
+        ],
+        'printer_central': [
+          { port: 'eth0', name: 'ETHERNET-NIC-1000BASE-T', status: 'up', speed: '1 Gbps', rx: 850000, tx: 2100000 }
+        ],
+        'ap_openspace': [
+          { port: 'eth0', name: 'UPLINK-POE-802.3AT', status: 'up', speed: '1 Gbps PoE+', rx: 65000000, tx: 22000000 },
+          { port: 'wl0_2g', name: 'RADIO-2.4GHZ-AX (14 Clients)', status: 'up', speed: '574 Mbps', rx: 12000000, tx: 4000000 },
+          { port: 'wl1_5g', name: 'RADIO-5GHZ-AX (32 Clients)', status: 'up', speed: '4.8 Gbps', rx: 53000000, tx: 18000000 }
+        ]
+      }
+    };
+
+    const STORAGE_KEY = 'snmp_enterprise_network_data_v3';
+    let NETWORK_DATA = loadFromStorage();
+
+    function loadFromStorage() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.nodes && parsed.links) return parsed;
+        }
+      } catch (e) {
+        console.warn('Lỗi đọc localStorage:', e);
+      }
+      return JSON.parse(JSON.stringify(DEFAULT_NETWORK_DATA));
+    }
+
+    function saveToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(NETWORK_DATA));
+      } catch (e) {
+        console.error('Lỗi lưu localStorage:', e);
+      }
+    }
+
+    let selectedNodeId = 'core_sw';
+    let currentTheme = 'neon';
+    let autoRotateTimer = null;
+    let isSurgeActive = false;
+    let canvasZoom = 1;
+    let panX = 0, panY = 0;
+    let isDraggingCanvas = false;
+    let isDraggingNode = false;
+    let draggedNode = null;
+    let dragNodeStartX = 0, dragNodeStartY = 0;
+    let startPanX = 0, startPanY = 0;
+    let isArrangeMode = false;
+    let currentCategoryFilter = 'all';
+
+    function showToast(msg) {
+      const c = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = 'toast-msg';
+      t.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span>${msg}</span>
+      `;
+      c.appendChild(t);
+      setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transform = 'translateY(10px)';
+        t.style.transition = 'all 0.3s ease';
+        setTimeout(() => t.remove(), 300);
+      }, 3500);
+    }
+
+    function fmtRate(bps) {
+      if (bps == null || bps === 0) return '0 bps';
+      if (bps < 1e3) return `${Math.round(bps)} bps`;
+      if (bps < 1e6) return `${(bps / 1e3).toFixed(1)} Kbps`;
+      if (bps < 1e9) return `${(bps / 1e6).toFixed(1)} Mbps`;
+      return `${(bps / 1e9).toFixed(2)} Gbps`;
+    }
+
+    function calcFlowStyle(bps) {
+      if (!bps || bps <= 1000) {
+        return { strokeWidth: 1.5, duration: 0, opacity: 0.3, color: '#475569' };
+      }
+      const t = Math.min(1, Math.max(0, (Math.log10(bps) - 3) / 6));
+      const strokeWidth = (2 + t * 4.5).toFixed(1);
+      const duration = (2.8 - t * 2.2).toFixed(2);
+      const opacity = (0.6 + t * 0.4).toFixed(2);
+      
+      let color = 'var(--accent-cyan)';
+      if (bps > 200000000) color = 'var(--accent-warn)';
+      if (bps > 500000000) color = 'var(--accent-cyan)';
+      return { strokeWidth, duration, opacity, color };
+    }
+
+    function setCategoryFilter(cat, btnEl) {
+      currentCategoryFilter = cat;
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+
+      document.querySelectorAll('.svg-node-group').forEach(group => {
+        const nodeId = group.id.replace('node-', '');
+        const node = NETWORK_DATA.nodes.find(n => n.id === nodeId);
+        if (!node) return;
+
+        if (cat === 'all' || node.category === cat) {
+          group.style.opacity = '1';
+          group.style.pointerEvents = 'auto';
+        } else {
+          group.style.opacity = '0.2';
+          group.style.pointerEvents = 'none';
+        }
+      });
+    }
+
+    function renderTopology() {
+      const linksLayer = document.getElementById('links-layer');
+      const badgesLayer = document.getElementById('link-badges-layer');
+      const nodesLayer = document.getElementById('nodes-layer');
+
+      linksLayer.innerHTML = '';
+      badgesLayer.innerHTML = '';
+      nodesLayer.innerHTML = '';
+
+      const nodeMap = {};
+      NETWORK_DATA.nodes.forEach(n => nodeMap[n.id] = n);
+
+      // 1. Links
+      NETWORK_DATA.links.forEach((link) => {
+        const fromNode = nodeMap[link.from];
+        const toNode = nodeMap[link.to];
+        if (!fromNode || !toNode) return;
+
+        const x1 = fromNode.x + 200;
+        const y1 = fromNode.y + 40;
+        const x2 = toNode.x;
+        const y2 = toNode.y + 40;
+
+        const dx = Math.abs(x2 - x1) * 0.5;
+        const pathData = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+
+        const baseLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        baseLine.setAttribute('d', pathData);
+        baseLine.setAttribute('class', 'link-path-base');
+        linksLayer.appendChild(baseLine);
+
+        const flow = calcFlowStyle(link.rx);
+        const flowLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        flowLine.setAttribute('d', pathData);
+        flowLine.setAttribute('class', 'link-path-flow');
+        flowLine.setAttribute('stroke', flow.color);
+        flowLine.setAttribute('stroke-width', flow.strokeWidth);
+        flowLine.setAttribute('stroke-opacity', flow.opacity);
+        flowLine.setAttribute('stroke-dasharray', flow.duration > 0 ? '8 12' : 'none');
+        flowLine.style.animationDuration = `${flow.duration}s`;
+        if (flow.duration === 0) flowLine.style.animation = 'none';
+        linksLayer.appendChild(flowLine);
+
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+
+        const badgeG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const badgeBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        badgeBg.setAttribute('x', mx - 45);
+        badgeBg.setAttribute('y', my - 11);
+        badgeBg.setAttribute('width', 90);
+        badgeBg.setAttribute('height', 22);
+        badgeBg.setAttribute('class', 'link-speed-bg');
+        if (flow.color === 'var(--accent-warn)') {
+          badgeBg.style.stroke = 'var(--accent-warn)';
+        }
+
+        const badgeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        badgeText.setAttribute('x', mx);
+        badgeText.setAttribute('y', my);
+        badgeText.setAttribute('class', 'link-speed-text');
+        badgeText.textContent = link.label;
+
+        badgeG.appendChild(badgeBg);
+        badgeG.appendChild(badgeText);
+        badgesLayer.appendChild(badgeG);
+      });
+
+      // 2. Nodes
+      NETWORK_DATA.nodes.forEach(node => {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'svg-node-group');
+        g.setAttribute('id', `node-${node.id}`);
+        g.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('width', 200);
+        rect.setAttribute('height', 82);
+        let boxClass = 'node-box';
+        if (node.id === selectedNodeId) boxClass += ' selected';
+        if (node.status === 'alert') boxClass += ' node-crit';
+        if (node.status === 'warn') boxClass += ' node-warn';
+        rect.setAttribute('class', boxClass);
+        g.appendChild(rect);
+
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', 16);
+        dot.setAttribute('cy', 20);
+        let dotClass = 'status-dot ';
+        if (node.status === 'alert') dotClass += 'dot-crit';
+        else if (node.status === 'standby') dotClass += 'dot-warn';
+        else dotClass += 'dot-online';
+        dot.setAttribute('class', dotClass);
+        g.appendChild(dot);
+
+        const catBadge = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        catBadge.setAttribute('x', 26);
+        catBadge.setAttribute('y', 23);
+        catBadge.setAttribute('font-size', '11px');
+        let catEmoji = '🖧';
+        if (node.category === 'wireless') catEmoji = '📡';
+        if (node.category === 'server') catEmoji = '🖥️';
+        if (node.category === 'printer') catEmoji = '🖨️';
+        if (node.category === 'service') catEmoji = '⚙️';
+        catBadge.textContent = catEmoji;
+        g.appendChild(catBadge);
+
+        const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        title.setAttribute('x', 44);
+        title.setAttribute('y', 23);
+        title.setAttribute('class', 'node-title');
+        title.textContent = node.name.length > 20 ? node.name.substring(0, 19) + '…' : node.name;
+        g.appendChild(title);
+
+        const sub = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        sub.setAttribute('x', 16);
+        sub.setAttribute('y', 44);
+        sub.setAttribute('class', 'node-sub');
+        sub.textContent = `${node.ip} · ${node.speed || ''}`;
+        g.appendChild(sub);
+
+        const stat = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        stat.setAttribute('x', 16);
+        stat.setAttribute('y', 64);
+        stat.setAttribute('class', 'node-stat');
+        stat.textContent = `↓ ${fmtRate(node.rx)}  ↑ ${fmtRate(node.tx)}`;
+        g.appendChild(stat);
+
+        if (node.services && node.services.length > 0) {
+          const srvText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          srvText.setAttribute('x', 16);
+          srvText.setAttribute('y', 76);
+          srvText.setAttribute('class', 'node-service-pill');
+          srvText.textContent = `[${node.services.slice(0, 3).join(', ')}]`;
+          g.appendChild(srvText);
+        }
+
+        if (isArrangeMode) {
+          const handle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          handle.setAttribute('x', 182);
+          handle.setAttribute('y', 23);
+          handle.setAttribute('class', 'drag-handle-dot');
+          handle.setAttribute('font-size', '14px');
+          handle.textContent = '✥';
+          g.appendChild(handle);
+        }
+
+        g.addEventListener('click', (e) => {
+          if (!isArrangeMode) selectNode(node.id);
+        });
+
+        // Click đúp vào thiết bị trên sơ đồ để mở ngay bảng chỉnh sửa thông số kỹ thuật
+        g.addEventListener('dblclick', (e) => {
+          if (!isArrangeMode) {
+            selectNode(node.id);
+            openEditSpecsModal();
+          }
+        });
+
+        g.addEventListener('mousedown', (e) => {
+          if (isArrangeMode) {
+            e.stopPropagation();
+            isDraggingNode = true;
+            draggedNode = node;
+            const pt = getSvgPoint(e);
+            dragNodeStartX = pt.x - node.x;
+            dragNodeStartY = pt.y - node.y;
+          }
+        });
+
+        g.addEventListener('mouseenter', (e) => {
+          if (!isArrangeMode) showSnmpTooltip(e, node);
+        });
+        g.addEventListener('mouseleave', hideSnmpTooltip);
+
+        nodesLayer.appendChild(g);
+      });
+
+      updateKpis();
+      updateFilterCounts();
+    }
+
+    function updateFilterCounts() {
+      const counts = { all: NETWORK_DATA.nodes.length, switch: 0, wireless: 0, server: 0, printer: 0, service: 0 };
+      NETWORK_DATA.nodes.forEach(n => {
+        const c = n.category || 'switch';
+        if (counts[c] !== undefined) counts[c]++;
+      });
+      document.getElementById('countFilterAll').textContent = counts.all;
+      document.getElementById('countFilterSwitch').textContent = counts.switch;
+      document.getElementById('countFilterWifi').textContent = counts.wireless;
+      document.getElementById('countFilterServer').textContent = counts.server;
+      document.getElementById('countFilterPrinter').textContent = counts.printer;
+      document.getElementById('countFilterService').textContent = counts.service;
+    }
+
+    function getSvgPoint(e) {
+      const svg = document.getElementById('topo-svg-canvas');
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+      const g = document.getElementById('viewport-group');
+      return pt.matrixTransform(g.getScreenCTM().inverse());
+    }
+
+    // CHỌN NODE & HIỂN THỊ CHI TIẾT THÔNG SỐ KỸ THUẬT LÊN INSPECTOR
+    function selectNode(nodeId) {
+      selectedNodeId = nodeId;
+      const node = NETWORK_DATA.nodes.find(n => n.id === nodeId);
+      if (!node) return;
+
+      document.querySelectorAll('.node-box').forEach(b => b.classList.remove('selected'));
+      const activeGroup = document.getElementById(`node-${nodeId}`);
+      if (activeGroup) {
+        const r = activeGroup.querySelector('.node-box');
+        if (r) r.classList.add('selected');
+      }
+
+      const cat = node.category || 'switch';
+      document.getElementById('inspectorIconWrap').innerHTML = DEVICE_ICONS[cat] || DEVICE_ICONS.switch;
+      document.getElementById('inspectorTitleText').textContent = node.name;
+      document.getElementById('inspectorNodeMeta').textContent = `${node.ip} · ${node.descr || ''}`;
+      document.getElementById('inspectorNodeTier').textContent = `TIER: ${(node.tier || 'sw').toUpperCase()}`;
+      document.getElementById('specThroughput').textContent = fmtRate((node.rx || 0) + (node.tx || 0));
+
+      // Cập nhật dịch vụ
+      const servicesChipList = document.getElementById('servicesChipList');
+      servicesChipList.innerHTML = '';
+      if (node.services && node.services.length > 0) {
+        document.getElementById('servicesWidget').style.display = 'flex';
+        node.services.forEach(s => {
+          const chip = document.createElement('span');
+          chip.className = 'service-chip-badge';
+          chip.textContent = `⚙️ ${s}`;
+          servicesChipList.appendChild(chip);
+        });
+      } else {
+        document.getElementById('servicesWidget').style.display = 'none';
+      }
+
+      // RENDER KHỐI THÔNG SỐ KỸ THUẬT CHI TIẾT (SPECS GRID)
+      renderDetailedSpecs(node);
+      updateInspectorPresetSelect(cat);
+
+      renderPortList(nodeId);
+    }
+
+    function updateInspectorPresetSelect(cat) {
+      const sel = document.getElementById('inspectorPresetSelect');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">-- Chọn Cấu Hình Chuẩn Thị Trường --</option>';
+      const presets = MARKET_HARDWARE_PROFILES[cat] || [];
+      presets.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.badge} ${p.name}`;
+        sel.appendChild(opt);
+      });
+    }
+
+    function applyInspectorPreset(presetId) {
+      if (!presetId || !selectedNodeId) return;
+      const node = NETWORK_DATA.nodes.find(n => n.id === selectedNodeId);
+      if (!node) return;
+
+      const cat = node.category || 'switch';
+      const presets = MARKET_HARDWARE_PROFILES[cat] || [];
+      const preset = presets.find(p => p.id === presetId);
+      if (!preset) return;
+
+      // Cập nhật toàn bộ thông số chuẩn thị trường vào thiết bị
+      node.descr = preset.specs.model || preset.name;
+      if (preset.speed) node.speed = preset.speed;
+      if (preset.tier) node.tier = preset.tier;
+      if (preset.rx) {
+        node.rx = preset.rx;
+        node.tx = Math.round(preset.rx * 0.35);
+      }
+      node.specs = { ...(preset.specs || {}) };
+
+      // Cập nhật nhãn cổng / link uplink nếu có
+      const link = NETWORK_DATA.links.find(l => l.to === node.id);
+      if (link && node.speed) {
+        link.label = `${node.speed}: ${fmtRate(node.rx)}`;
+        link.rx = node.rx;
+        link.tx = node.tx;
+      }
+
+      saveToStorage();
+      renderTopology();
+      selectNode(node.id);
+      showToast(`⚡ Đã chuyển sang cấu hình chuẩn thị trường: ${preset.name}`);
+    }
+
+    function openEditSpecsModal() {
+      openEditCurrentNodeModal();
+      switchModalTab('tab2', document.getElementById('tabBtn2'));
+    }
+
+    function renderDetailedSpecs(node) {
+      const grid = document.getElementById('specsGridContent');
+      grid.innerHTML = '';
+      const specs = node.specs || {};
+
+      let catTitle = 'THÔNG SỐ SWITCH & ROUTING';
+      let catBadge = 'SWITCH L2/L3';
+      if (node.category === 'wireless') {
+        catTitle = 'THÔNG SỐ SÓNG & VÔ TUYẾN';
+        catBadge = 'WIRELESS RF';
+      } else if (node.category === 'server') {
+        catTitle = 'THÔNG SỐ MÁY CHỦ & LƯU TRỮ';
+        catBadge = 'SERVER & STORAGE';
+      } else if (node.category === 'printer') {
+        catTitle = 'THÔNG SỐ IN ẤN & VẬT TƯ';
+        catBadge = 'PRINTER & MFP';
+      } else if (node.category === 'service') {
+        catTitle = 'THÔNG SỐ DỊCH VỤ AN NINH';
+        catBadge = 'SECURITY SERVICE';
+      }
+
+      document.getElementById('specsHeaderTitle').textContent = catTitle;
+      document.getElementById('specsCategoryBadge').textContent = catBadge;
+
+      // Danh mục các trường specs cần hiển thị
+      const addSpecEntry = (label, val) => {
+        if (!val) return;
+        const d = document.createElement('div');
+        d.className = 'spec-entry';
+        d.innerHTML = `<span class="k">${label}</span><span class="v" title="${val}">${val}</span>`;
+        grid.appendChild(d);
+      };
+
+      if (node.category === 'switch') {
+        addSpecEntry('Model Phần Cứng', specs.model || node.descr);
+        addSpecEntry('Số Lượng Cổng', specs.portCount || '24 Ports GbE');
+        addSpecEntry('Công Suất PoE', specs.poeBudget || 'N/A');
+        addSpecEntry('Switching Fabric', specs.switchingCapacity || '128 Gbps Wire-speed');
+        addSpecEntry('Cấp Phân Tầng Layer', specs.layer || 'Layer 2+ Access');
+        addSpecEntry('VLANs Hoạt Động', specs.vlanCount || '4096 VLANs');
+        addSpecEntry('Tính Năng Bảo Mật', specs.security || '802.1X, DHCP Snooping');
+        addSpecEntry('Vị Trí Lắp Đặt', node.location || 'Rack IDF');
+      } else if (node.category === 'wireless') {
+        addSpecEntry('Model Access Point', specs.model || node.descr);
+        addSpecEntry('Chuẩn Công Nghệ WiFi', specs.wifiStandards || 'WiFi 6 (802.11ax)');
+        addSpecEntry('Cấu Hình Ăng-ten', specs.mimo || '4x4 MU-MIMO OFDMA');
+        addSpecEntry('Tên Mạng Phát (SSIDs)', specs.ssids || 'CORP-SECURE & GUEST');
+        addSpecEntry('Bán Kính Phủ Sóng', specs.coverage || 'Bán kính 25m');
+        addSpecEntry('Phương Thức Cấp Nguồn', specs.powerMethod || 'PoE+ 802.3at');
+        addSpecEntry('Clients Hoạt Động', specs.clientsActive || `${specs.maxClients || 250} Max`);
+        addSpecEntry('Giao Thức Chuyển Vùng', specs.roaming || '802.11k/v/r Fast Roaming');
+      } else if (node.category === 'server') {
+        addSpecEntry('Dòng Máy Chủ (Chassis)', specs.formFactor || 'Rack 2U Enterprise');
+        addSpecEntry('Vi Xử Lý (CPU)', specs.cpu || 'Intel Xeon Scalable / AMD EPYC');
+        addSpecEntry('Bộ Nhớ RAM', specs.ram || '128 GB ECC Registered');
+        addSpecEntry('Hệ Thống Mảng Đĩa', specs.storageRaid || 'NVMe SSD RAID-10');
+        addSpecEntry('Dung Lượng Usable', specs.usableStorage || '40 TB Usable');
+        addSpecEntry('Hệ Điều Hành / Hypervisor', specs.os || 'Proxmox VE / Ubuntu');
+        addSpecEntry('Cổng Mạng NICs', specs.nics || '2x 10GbE SFP+ LACP');
+        addSpecEntry('Tải Máy Ảo / VMs', specs.vmCount || '18 Máy Ảo (VMs)');
+      } else if (node.category === 'printer') {
+        addSpecEntry('Loại Máy In', specs.printerType || 'Laser Đa Năng MFP');
+        addSpecEntry('Tốc Độ In Ấn', specs.printSpeed || '35 ppm A4');
+        addSpecEntry('Độ Phân Giải', specs.resolution || '1200 x 1200 dpi');
+        addSpecEntry('Cấu Hình Khay Giấy', specs.paperTrays || 'Khay 1 (A4), Khay 2 (A3)');
+        addSpecEntry('Tình Trạng Vật Tư', specs.tonerStatus || 'Toner Black: 90%');
+        addSpecEntry('Giao Thức In Ấn', specs.protocols || 'IPP, LPD, RAW, AirPrint');
+        addSpecEntry('Quét Mạng (Scan)', specs.scanFeatures || 'Scan-to-Email, SMBv3');
+        addSpecEntry('Bộ Nhớ / Bảo Mật', specs.memoryStorage || '2 GB RAM + Mã Hóa HDD');
+      } else if (node.category === 'service') {
+        addSpecEntry('Dịch Vụ Cốt Lõi', specs.serviceType || 'Firewall & Network Gateway');
+        addSpecEntry('Cổng Dịch Vụ', specs.ports || 'Port 53, 67, 443, 51820');
+        addSpecEntry('DHCP Scope', specs.dhcpScope || '192.168.1.100 - 192.168.1.200');
+        addSpecEntry('Mã Hóa VPN Gateway', specs.vpnType || 'WireGuard AES-256');
+        addSpecEntry('Cơ Chế Dự Phòng HA', specs.haMode || 'Active/Standby High Availability');
+        addSpecEntry('Thông Lượng Xử Lý', specs.throughput || '10 Gbps Wire-speed');
+        addSpecEntry('Hệ Điều Hành', node.descr || 'pfSense Plus / Linux');
+        addSpecEntry('Vị Trí Tủ Rack', node.location || 'Rack Core');
+      }
+    }
+
+    function renderPortList(nodeId) {
+      const container = document.getElementById('portList');
+      container.innerHTML = '';
+
+      const portData = NETWORK_DATA.ports[nodeId] || [];
+      if (portData.length === 0) {
+        container.innerHTML = `
+          <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">
+            Thiết bị này chưa khai báo danh sách cổng.<br>
+            <button class="btn btn-sm btn-primary" onclick="openAddPortModal()" style="margin-top:10px;">
+              ➕ Thêm Cổng Interface
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      portData.forEach((p, idx) => {
+        const card = document.createElement('div');
+        let cardClass = `port-card port-${p.status}`;
+        if (p.alert) cardClass += ' port-alert';
+        card.className = cardClass;
+
+        card.innerHTML = `
+          <div class="port-left">
+            <div class="port-num-badge">${p.port.replace(/[^0-9]/g, '') || p.port.substring(0,3)}</div>
+            <div class="port-device-info">
+              <div class="device-name" title="${p.name}">${p.name}</div>
+              <div class="device-meta">${p.port} · ${p.speed || '1 Gbps'}</div>
+            </div>
+          </div>
+
+          <div class="port-actions">
+            <button class="btn-port-action" title="Chỉnh sửa cổng này" onclick="openEditPortModal(${idx})">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            </button>
+            <button class="btn-port-action delete" title="Xóa cổng này" onclick="deletePort(${idx})">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+
+          <div class="port-traffic-right">
+            ${p.status === 'up' ? `
+              <div class="traffic-rx">↓ ${fmtRate(p.rx)}</div>
+              <div class="traffic-tx">↑ ${fmtRate(p.tx)}</div>
+            ` : `
+              <span class="traffic-down-badge">Down</span>
+            `}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function updateKpis() {
+      const totalNodes = NETWORK_DATA.nodes.length;
+      document.getElementById('kpiDevicesSub').textContent = `${totalNodes} Nodes Đang Hoạt Động`;
+    }
+
+    function toggleArrangeMode() {
+      isArrangeMode = !isArrangeMode;
+      const btn = document.getElementById('btnArrangeMode');
+      const banner = document.getElementById('arrangeBanner');
+      if (isArrangeMode) {
+        btn.classList.add('btn-active');
+        document.getElementById('arrangeLabel').textContent = '✓ Xong Bố Cục';
+        banner.style.display = 'flex';
+        showToast('Đã BẬT Chế độ Sắp xếp: Kéo thả các hộp node để đổi vị trí.');
+      } else {
+        btn.classList.remove('btn-active');
+        document.getElementById('arrangeLabel').textContent = '✥ Sắp xếp Vị trí';
+        banner.style.display = 'none';
+        saveToStorage();
+        showToast('Đã lưu tọa độ vị trí bố cục mới!');
+      }
+      renderTopology();
+    }
+
+    // XỬ LÝ CHUYỂN TABS TRONG MODAL THÊM/SỬA
+    function switchModalTab(tabId, btnEl) {
+      document.querySelectorAll('.modal-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content-panel').forEach(p => p.classList.remove('active'));
+
+      if (btnEl) btnEl.classList.add('active');
+      if (tabId === 'tab1') document.getElementById('tabPanel1').classList.add('active');
+      if (tabId === 'tab2') document.getElementById('tabPanel2').classList.add('active');
+      if (tabId === 'tab3') document.getElementById('tabPanel3').classList.add('active');
+    }
+
+    // RENDER ĐỘNG CÁC TRƯỜNG THÔNG SỐ KỸ THUẬT CHI TIẾT TẠI TAB 2 (CÓ SẴN CHUẨN THỊ TRƯỜNG)
+    function handleCategoryChange(cat, existingSpecs = {}) {
+      const extra = document.getElementById('dynamicExtraFields');
+      extra.innerHTML = '';
+
+      const presets = MARKET_HARDWARE_PROFILES[cat] || [];
+      const presetOpts = presets.map(p => `<option value="${p.id}">${p.badge} ${p.name}</option>`).join('');
+
+      const presetHeaderHtml = `
+        <div class="market-preset-header-card">
+          <div class="preset-label-group">
+            <span class="preset-icon">⚡</span>
+            <div>
+              <div class="preset-title">Bộ Cấu Hình Phần Cứng & Tốc Độ Thị Trường (Market Presets)</div>
+              <div class="preset-subtitle">Chọn mẫu để tự động điền toàn bộ thông số kỹ thuật chuẩn của các dòng thiết bị đang bán chạy trên thị trường:</div>
+            </div>
+          </div>
+          <select class="form-select form-select-preset" id="modalPresetSelect" onchange="applyModalPreset(this.value)">
+            <option value="">-- Chọn Cấu Hình Chuẩn Thị Trường (Tự Động Điền 1-Click) --</option>
+            ${presetOpts}
+          </select>
+        </div>
+      `;
+
+      if (cat === 'switch') {
+        extra.innerHTML = presetHeaderHtml + `
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Dòng Thiết Bị & Model Phần Cứng</label>
+              <input type="text" class="form-input" id="spec_model" list="dl_sw_models" value="${existingSpecs.model || 'Cisco Catalyst 9300-48P'}" placeholder="vd: Cisco Catalyst 9300 / FortiGate 100F">
+              <datalist id="dl_sw_models">
+                <option value="Cisco Catalyst 9300-48UXM mGig UPOE+"></option>
+                <option value="Cisco Nexus 93180YC-FX Data Center Leaf"></option>
+                <option value="Aruba CX 6300M 48-port SmartRate 5G PoE"></option>
+                <option value="Fortinet FortiGate 100F Next-Gen Firewall"></option>
+                <option value="MikroTik Cloud Core Router CCR2004-1G-12S+2XS"></option>
+                <option value="Cisco Catalyst 9200L-24P-4G Access Switch"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Số Lượng Cổng Vật Lý (Port Density)</label>
+              <input type="text" class="form-input" id="spec_portCount" list="dl_sw_ports" value="${existingSpecs.portCount || '48 Port GbE + 4x 10G SFP+'}" placeholder="vd: 24 Ports GbE hoặc 48 Ports">
+              <datalist id="dl_sw_ports">
+                <option value="48x Multi-Gigabit (100M/1G/2.5G/5G/10G) + 4x 10G/25G SFP28"></option>
+                <option value="48x 25G SFP28 + 6x 100G QSFP28 Spine Uplinks"></option>
+                <option value="48x 100M/1G/2.5G/5G mGig + 4x 50G SFP56 Uplinks"></option>
+                <option value="24x 10/100/1000M PoE+ + 4x 1G SFP Uplinks"></option>
+                <option value="2x 10G SFP+ FortiLink + 16x GbE RJ45 + 4x SFP"></option>
+                <option value="12x 10G SFP+ + 2x 25G SFP28 + 1x GbE RJ45"></option>
+              </datalist>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Công Suất Cấp Nguồn PoE (Budget)</label>
+              <input type="text" class="form-input" id="spec_poeBudget" list="dl_poe_budgets" value="${existingSpecs.poeBudget || '740W PoE+ (802.3at)'}" placeholder="vd: 370W, 740W hoặc Không PoE">
+              <datalist id="dl_poe_budgets">
+                <option value="Không cấp PoE (Data Only / Non-PoE)"></option>
+                <option value="120W (802.3af PoE - 15.4W/cổng)"></option>
+                <option value="370W PoE+ (802.3at 30W/cổng)"></option>
+                <option value="740W PoE+ (802.3at 30W/cổng Full 48P)"></option>
+                <option value="1440W (802.3bt Type 4 90W UPOE+ High-Power)"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Băng Thông Chuyển Mạch (Switching Capacity)</label>
+              <input type="text" class="form-input" id="spec_switchingCapacity" list="dl_switching_cap" value="${existingSpecs.switchingCapacity || '480 Gbps Wire-Speed'}" placeholder="vd: 128 Gbps, 480 Gbps">
+              <datalist id="dl_switching_cap">
+                <option value="56 Gbps Wire-Speed (24-Port GbE)"></option>
+                <option value="128 Gbps Wire-Speed (48-Port GbE + 4x 10G SFP+)"></option>
+                <option value="256 Gbps Wire-Speed (24-Port 2.5G mGig + 10G)"></option>
+                <option value="480 Gbps Wire-Speed (Cisco Catalyst 9300)"></option>
+                <option value="880 Gbps Wire-Speed Capacity (Aruba CX 6300M 50G)"></option>
+                <option value="1.28 Tbps Wire-Speed (Enterprise Core 40G)"></option>
+                <option value="3.6 Tbps / 2.6 Bpps Wire-Speed (Cisco Nexus 93180 100G)"></option>
+                <option value="12.8 Tbps Wire-Speed (Hyperscale Spine 400G)"></option>
+              </datalist>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Cấp Phân Tầng Layer & Định Tuyến</label>
+              <select class="form-select" id="spec_layer">
+                <option value="Layer 2 Access" ${existingSpecs.layer === 'Layer 2 Access' ? 'selected' : ''}>Layer 2 (Access Switch - VLAN 802.1Q)</option>
+                <option value="Layer 2+ với Static Routing" ${existingSpecs.layer === 'Layer 2+ với Static Routing' ? 'selected' : ''}>Layer 2+ (Hỗ trợ Static Route / LACP / ACL)</option>
+                <option value="Layer 3 Distribution (OSPF, VRRP, DHCP Relay)" ${existingSpecs.layer && existingSpecs.layer.includes('Distribution') ? 'selected' : ''}>Layer 3 Distribution (OSPFv2/v3, VRRP, DHCP Relay)</option>
+                <option value="Layer 3 Full Routing (OSPF, BGP, EVPN-VXLAN, VRF)" ${(!existingSpecs.layer || existingSpecs.layer.includes('Layer 3 Full') || existingSpecs.layer.includes('BGP')) ? 'selected' : ''}>Layer 3 Core / Data Center (OSPF, BGP, EVPN-VXLAN, VRF)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Số Lượng VLANs Hỗ Trợ & 802.1Q</label>
+              <input type="text" class="form-input" id="spec_vlanCount" list="dl_vlans" value="${existingSpecs.vlanCount || '4096 VLANs (Active: 12)'}" placeholder="vd: 4096 VLANs">
+              <datalist id="dl_vlans">
+                <option value="256 VLANs (Small Office)"></option>
+                <option value="1024 VLANs (Standard Enterprise)"></option>
+                <option value="4096 VLANs (Active: 24 VLANs 802.1Q)"></option>
+                <option value="4096 VLANs (16M VXLAN VNIs Data Center)"></option>
+              </datalist>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cơ Chế Bảo Mật & Kiểm Soát Cổng</label>
+            <input type="text" class="form-input" id="spec_security" list="dl_sw_sec" value="${existingSpecs.security || '802.1X NAC, Port Security, DHCP Snooping, DAI'}" placeholder="vd: 802.1X, DHCP Snooping, Dynamic ARP">
+            <datalist id="dl_sw_sec">
+              <option value="802.1X NAC, MACsec-256, TrustSec, DHCP Snooping, DAI"></option>
+              <option value="Aruba ClearPass Policy Enforcer, 802.1X, MAC-Auth"></option>
+              <option value="FortiGuard IPS, AV, WAF, SSL Deep Inspection, Zero Trust ZTNA"></option>
+              <option value="Control Plane Policing (CoPP), IEEE 802.1ae MACsec"></option>
+              <option value="FastPath Firewall, WireGuard, IPsec IKEv2 HW Offload"></option>
+              <option value="802.1X Port Security, Private VLAN, IP Source Guard"></option>
+            </datalist>
+          </div>
+        `;
+      } else if (cat === 'wireless') {
+        extra.innerHTML = presetHeaderHtml + `
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Model Thiết Bị Access Point / Controller</label>
+              <input type="text" class="form-input" id="spec_model" list="dl_wifi_models" value="${existingSpecs.model || 'Ubiquiti UniFi U6-Pro Enterprise'}" placeholder="vd: UniFi U7 Pro Max / Cisco Catalyst 9136">
+              <datalist id="dl_wifi_models">
+                <option value="Ubiquiti UniFi U7 Pro Max Tri-Band AP"></option>
+                <option value="Cisco Catalyst 9136 AXE Enterprise AP"></option>
+                <option value="Ubiquiti UniFi U6-Pro Enterprise Access Point"></option>
+                <option value="Aruba AP-655 Tri-Radio WiFi 6E Campus AP"></option>
+                <option value="Ruckus R850 Ultra-High-Density 8x8 Access Point"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Chuẩn Công Nghệ Phát Sóng WiFi (Tốc Độ Thị Trường)</label>
+              <input type="text" class="form-input" id="spec_wifiStandards" list="dl_wifi_standards" value="${existingSpecs.wifiStandards || 'WiFi 6 (802.11ax) Dual-Band 4x4 MU-MIMO - 5.3 Gbps'}">
+              <datalist id="dl_wifi_standards">
+                <option value="WiFi 7 (802.11be) Tri-Band 320MHz MLO - 18.6 Gbps"></option>
+                <option value="WiFi 7 (802.11be) Dual-Band 240MHz - 9.3 Gbps"></option>
+                <option value="WiFi 6E (802.11ax) Tri-Band 6 GHz 160MHz - 10.2 Gbps"></option>
+                <option value="WiFi 6E (802.11ax) Tri-Band 6 GHz 160MHz - 7.8 Gbps"></option>
+                <option value="WiFi 6 (802.11ax) Dual-Band 4x4 MU-MIMO - 5.3 Gbps"></option>
+                <option value="WiFi 6 (802.11ax) Dual-Band 8x8 MU-MIMO - 5.9 Gbps"></option>
+                <option value="WiFi 6 (802.11ax) Dual-Band 2x2 - 2.4 Gbps"></option>
+                <option value="WiFi 5 (802.11ac Wave 2) - 1.73 Gbps Legacy"></option>
+              </datalist>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Cấu Hình Ăng-ten Vô Tuyến (MIMO)</label>
+              <input type="text" class="form-input" id="spec_mimo" list="dl_mimo" value="${existingSpecs.mimo || '4x4 MU-MIMO (5 GHz) + 2x2 MIMO (2.4 GHz)'}" placeholder="vd: 4x4 MU-MIMO OFDMA Beamforming">
+              <datalist id="dl_mimo">
+                <option value="4x4 MU-MIMO (6 GHz) + 4x4 (5 GHz) + 2x2 (2.4 GHz)"></option>
+                <option value="8x8:8 MU-MIMO (5 GHz) + 4x4:4 (6 GHz) + 4x4:4 (2.4 GHz)"></option>
+                <option value="8x8:8 MU-MIMO (5 GHz) + 4x4:4 (2.4 GHz) BeamFlex+"></option>
+                <option value="4x4:4 MU-MIMO Tri-Band (2.4GHz + 5GHz + 6GHz)"></option>
+                <option value="4x4 MU-MIMO (5 GHz) 160MHz + 2x2 MIMO (2.4 GHz)"></option>
+                <option value="2x2 MU-MIMO Dual-Band Tiêu chuẩn"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tên Mạng WiFi Phát Sóng (Multi-SSIDs)</label>
+              <input type="text" class="form-input" id="spec_ssids" list="dl_ssids" value="${existingSpecs.ssids || 'CORP-SECURE (VLAN 10), GUEST-WIFI (VLAN 99)'}" placeholder="vd: CORP-SECURE, GUEST-WIFI, IOT">
+              <datalist id="dl_ssids">
+                <option value="CORP-WPA3-ENT, CORP-IOT, GUEST-PORTAL (VLAN 10,20,99)"></option>
+                <option value="CORP-SECURE (802.1X), EXECUTIVE, GUEST-WIFI"></option>
+                <option value="ARUBA-CORP-SECURE, VOIP-PRIORITY, GUEST-PORTAL"></option>
+                <option value="CORP-WIFI-5G, IOT-ISOLATED, GUEST-HOTSPOT"></option>
+                <option value="STADIUM-HIGH-DENSITY, VIP-WIFI, STAFF-SECURE"></option>
+              </datalist>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Bán Kính Phủ Sóng & Công Suất Phát</label>
+              <input type="text" class="form-input" id="spec_coverage" list="dl_coverage" value="${existingSpecs.coverage || 'Bán kính 25m trong nhà (23 dBm)'}" placeholder="vd: 25m trong nhà / 100m ngoài trời">
+              <datalist id="dl_coverage">
+                <option value="Bán kính 25m trong nhà (Gain: 4 dBi)"></option>
+                <option value="Bán kính 30m trong nhà (Cisco CleanAir Pro Spectrum)"></option>
+                <option value="Bán kính 35m xuyên tường (Antenna Gain: 6 dBi)"></option>
+                <option value="Bán kính 45m (Ăng-ten thích ứng BeamFlex+ 4000 patterns)"></option>
+                <option value="Bán kính 100m khuôn viên ngoài trời (Outdoor IP67)"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tải Thiết Bị Kết Nối Đồng Thời (Max Clients)</label>
+              <input type="text" class="form-input" id="spec_clientsActive" list="dl_clients" value="${existingSpecs.clientsActive || '350+ Concurrent Clients'}" placeholder="vd: 250 Clients / 500 Clients">
+              <datalist id="dl_clients">
+                <option value="150 Clients (Văn phòng nhỏ)"></option>
+                <option value="350+ Concurrent Clients (Văn phòng trung bình)"></option>
+                <option value="400+ Concurrent Clients (Zero-Wait DFS)"></option>
+                <option value="500+ Concurrent Clients (High-Density Enterprise)"></option>
+                <option value="1024 Concurrent Clients (Stadium / Event Hall)"></option>
+              </datalist>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Chuẩn Xác Thực & Roaming Bảo Mật</label>
+              <input type="text" class="form-input" id="spec_roaming" list="dl_roaming" value="${existingSpecs.roaming || '802.11k/v/r Fast Roaming + WPA3-Enterprise (802.1X)'}">
+              <datalist id="dl_roaming">
+                <option value="802.11k/v/r Fast Roaming + Band Steering + BSS Coloring"></option>
+                <option value="Cisco Fastlane iOS, 802.11r FT, PMKID Caching, WPA3-Ent"></option>
+                <option value="Aruba ClientMatch AI, 802.11r/k/v, WPA3-Enterprise 192-bit"></option>
+                <option value="802.11k/v/r Fast BSS Transition, WPA3-Personal/Enterprise"></option>
+                <option value="SmartRoam, 802.11k/r/v, ChannelFly Spectrum AI"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phương Thức Cấp Nguồn PoE AP</label>
+              <input type="text" class="form-input" id="spec_powerMethod" list="dl_ap_power" value="${existingSpecs.powerMethod || 'PoE+ 802.3at (Tiêu thụ 14.5W)'}" placeholder="vd: PoE 802.3af hoặc PoE+ 802.3at">
+              <datalist id="dl_ap_power">
+                <option value="PoE 802.3af (Tiêu thụ dưới 12W)"></option>
+                <option value="PoE+ 802.3at (Tiêu thụ 13W - 21W)"></option>
+                <option value="PoE++ 802.3bt Class 6 (Tiêu thụ 34.5W max)"></option>
+                <option value="802.3bt PoE++ (UPOE 60W / 47.3W max)"></option>
+                <option value="Dual 802.3at PoE+ Cấp Nguồn Dự Phòng Nóng"></option>
+              </datalist>
+            </div>
+          </div>
+        `;
+      } else if (cat === 'server') {
+        extra.innerHTML = presetHeaderHtml + `
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Dòng Thùng Máy & Form Factor</label>
+              <input type="text" class="form-input" id="spec_formFactor" list="dl_srv_forms" value="${existingSpecs.formFactor || 'Dell PowerEdge R750 2U Rackmount'}" placeholder="vd: Dell R750 2U, HPE ProLiant DL380, Blade">
+              <datalist id="dl_srv_forms">
+                <option value="Dell PowerEdge R760 2U Dual-Socket Rackmount"></option>
+                <option value="Dell PowerEdge R750 2U Rackmount Server"></option>
+                <option value="HPE ProLiant DL380 Gen11 2U 2P Server"></option>
+                <option value="TrueNAS M50 Dual-Controller High-Availability 4U"></option>
+                <option value="Synology RackStation RS3621xs+ 12-Bay 2U NAS"></option>
+                <option value="Cisco UCS B200 M6 Blade Server Chasis"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Vi Xử Lý (CPU Cores & Threads Thị Trường)</label>
+              <input type="text" class="form-input" id="spec_cpu" list="dl_srv_cpus" value="${existingSpecs.cpu || '2x Intel Xeon Gold 6330 (56 Cores / 112 Threads)'}" placeholder="vd: 2x Intel Xeon Gold hoặc AMD EPYC 7763">
+              <datalist id="dl_srv_cpus">
+                <option value="2x Intel Xeon Platinum 8480+ (112 Cores / 224 Threads, 3.8 GHz Turbo)"></option>
+                <option value="2x Intel Xeon Gold 6430 (64 Cores / 128 Threads, 60MB Cache)"></option>
+                <option value="2x Intel Xeon Gold 6330 (56 Cores / 112 Threads, 2.0 - 3.1 GHz)"></option>
+                <option value="1x AMD EPYC 9654 Genoa (96 Cores / 192 Threads, PCIe 5.0)"></option>
+                <option value="2x AMD EPYC 7763 Milan (128 Cores / 256 Threads, 256MB L3)"></option>
+                <option value="Intel Xeon D-1541 8-Core 2.1 GHz (Turbo 2.7 GHz)"></option>
+              </datalist>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Dung Lượng Bộ Nhớ RAM (ECC)</label>
+              <input type="text" class="form-input" id="spec_ram" list="dl_srv_rams" value="${existingSpecs.ram || '256 GB DDR4-3200 ECC Registered'}" placeholder="vd: 64 GB, 128 GB, 256 GB ECC">
+              <datalist id="dl_srv_rams">
+                <option value="64 GB DDR4-3200 MHz ECC Registered"></option>
+                <option value="128 GB DDR4-3200 MHz ECC Registered"></option>
+                <option value="256 GB DDR4-3200 MHz ECC Registered"></option>
+                <option value="256 GB DDR5-4800 MHz ECC SmartMemory"></option>
+                <option value="512 GB DDR5-4800 MHz ECC Registered (Max 8TB)"></option>
+                <option value="1.0 TB DDR5-5600 MHz ECC Registered Hyperscale"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mảng Đĩa Cứng & Tốc Độ Lưu Trữ Thực Tế</label>
+              <input type="text" class="form-input" id="spec_storageRaid" list="dl_srv_storages" value="${existingSpecs.storageRaid || 'PCIe Gen 4.0 NVMe U.2 Enterprise (7,000 MB/s, 1.2M IOPS)'}">
+              <datalist id="dl_srv_storages">
+                <option value="PCIe Gen 5.0 NVMe Enterprise U.2 (14,000 MB/s, 2.5M IOPS)"></option>
+                <option value="PCIe Gen 4.0 NVMe U.2 Enterprise (7,000 MB/s, 1.2M IOPS)"></option>
+                <option value="16x 1.92TB SAS-3 12Gbps Enterprise SSD (Hardware RAID-6 MR416i)"></option>
+                <option value="All-Flash NVMe-oF SAN Storage (100 Gbps RDMA RoCEv2)"></option>
+                <option value="SAS-3 12 Gbps 7200 RPM Enterprise HDD (260 MB/s, RAID-6/Z2)"></option>
+              </datalist>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Dung Lượng Lưu Trữ Khả Dụng (Usable Storage)</label>
+              <input type="text" class="form-input" id="spec_usableStorage" list="dl_usable_st" value="${existingSpecs.usableStorage || '15.3 TB NVMe Usable / 120 TB SAN'}" placeholder="vd: 15 TB Usable hoặc 120 TB ZFS">
+              <datalist id="dl_usable_st">
+                <option value="7.6 TB NVMe Gen4 Usable (RAID-1 Mirror)"></option>
+                <option value="15.3 TB NVMe ZFS Mirror + 40 TB SAS Backup"></option>
+                <option value="26.8 TB SAS-3 SSD Usable (RAID-6)"></option>
+                <option value="61.4 TB NVMe Gen5 Usable (Hardware RAID-10 PERC H965i)"></option>
+                <option value="96 TB Usable (Synology RAID 6 Btrfs) / 144TB Raw"></option>
+                <option value="240 TB All-Flash Usable (ZFS RAID-Z2 Dual Parity)"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Hệ Điều Hành / Hypervisor</label>
+              <input type="text" class="form-input" id="spec_os" list="dl_os_list" value="${existingSpecs.os || 'Proxmox VE 8.2 (Linux Kernel 6.8)'}" placeholder="vd: Proxmox VE 8.2, VMware ESXi 8.0, Windows Server 2025">
+              <datalist id="dl_os_list">
+                <option value="VMware ESXi 8.0 Update 3 Enterprise Plus"></option>
+                <option value="Proxmox VE 8.2 (Debian Linux Kernel 6.8 KVM/LXC)"></option>
+                <option value="Microsoft Windows Server 2025 Datacenter Edition"></option>
+                <option value="TrueNAS Enterprise OpenZFS 2.2 HA"></option>
+                <option value="Synology DiskStation Manager DSM 7.2 Enterprise"></option>
+                <option value="Red Hat Enterprise Linux 9.4 (KVM Hypervisor)"></option>
+              </datalist>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Giao Tiếp Mạng NICs & LACP (Tốc Độ Thị Trường)</label>
+              <input type="text" class="form-input" id="spec_nics" list="dl_srv_nics" value="${existingSpecs.nics || '4x 10GbE SFP+ Intel X710 LACP Bond'}" placeholder="vd: 4x 10GbE SFP+ hoặc 2x 25GbE Mellanox">
+              <datalist id="dl_srv_nics">
+                <option value="2x 1GbE RJ45 LACP Bond (2 Gbps)"></option>
+                <option value="2x 10GbE SFP+ Mellanox + 4x 1GbE RJ45 LACP"></option>
+                <option value="4x 10GbE SFP+ Intel X710 LACP Bond (40 Gbps Aggregate)"></option>
+                <option value="2x 25GbE SFP28 Broadcom BCM57414 OCP3 + 4x 1GbE"></option>
+                <option value="2x 25GbE SFP28 Mellanox ConnectX-6 RoCEv2 + 4x 10GbE SFP+"></option>
+                <option value="4x 25GbE SFP28 iSCSI / NVMe-oF / NFSv4.2 (100 Gbps Bandwidth)"></option>
+                <option value="2x 100GbE QSFP28 NVMe-oF High-Speed RDMA (200 Gbps)"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tải Số Lượng Máy Ảo (VMs) & Containers</label>
+              <input type="text" class="form-input" id="spec_vmCount" list="dl_vm_counts" value="${existingSpecs.vmCount || '28 Máy Ảo (VMs) + 45 Docker Pods'}" placeholder="vd: 25 VMs hoạt động">
+              <datalist id="dl_vm_counts">
+                <option value="12 VMs Văn phòng chi nhánh"></option>
+                <option value="25 Hyper-V Virtual Machines & Active Directory Domain"></option>
+                <option value="32 VMs KVM + 60 Docker Containers"></option>
+                <option value="48 VMs Enterprise (Oracle DB, ERP, Kubernetes Worker)"></option>
+                <option value="SAN Storage Target cấp cho 12 ESXi Hosts"></option>
+              </datalist>
+            </div>
+          </div>
+        `;
+      } else if (cat === 'printer') {
+        extra.innerHTML = presetHeaderHtml + `
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Dòng Máy In & Chức Năng Thị Trường</label>
+              <input type="text" class="form-input" id="spec_printerType" list="dl_pr_types" value="${existingSpecs.printerType || 'Laser Đa Năng Trắng Đen (In / Quét / Copy / Fax)'}" placeholder="vd: Laser Đa Năng MFP Ricoh / HP LaserJet">
+              <datalist id="dl_pr_types">
+                <option value="Laser Đa Năng Trắng Đen Công Nghiệp A3/A4 (In/Scan/Copy)"></option>
+                <option value="Laser Đa Năng MFP Văn Phòng A4/A3"></option>
+                <option value="Laser Màu Đa Năng Thông Minh A3/A4 (Color MFP)"></option>
+                <option value="Laser Màu Doanh Nghiệp Tốc Độ Cao A3/A4"></option>
+                <option value="Máy In & Quét Bản Vẽ Kỹ Thuật Khổ Lớn A0 (36-inch CAD/GIS)"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tốc Độ In Ấn (Pages Per Minute ppm Thị Trường)</label>
+              <input type="text" class="form-input" id="spec_printSpeed" list="dl_pr_speeds" value="${existingSpecs.printSpeed || '35 Trang/Phút (ppm) Khổ A4'}" placeholder="vd: 35 ppm, 55 ppm">
+              <datalist id="dl_pr_speeds">
+                <option value="25 Trang/Phút (ppm) - Văn phòng nhỏ A4"></option>
+                <option value="35 Trang/Phút (ppm) - Đa năng A4/A3 tiêu chuẩn"></option>
+                <option value="35 Trang/Phút (ppm) - Máy in màu doanh nghiệp Canon DX"></option>
+                <option value="50 Trang/Phút (ppm) - Công nghiệp tốc độ cao Ricoh MP 5055"></option>
+                <option value="65 Trang/Phút (ppm) - Máy in màu doanh nghiệp HP M776"></option>
+                <option value="80 Trang/Phút (ppm) - Hệ thống in ấn trung tâm"></option>
+                <option value="25 Giây / Bản vẽ A1 (Máy in Plotter CAD HP DesignJet T830)"></option>
+              </datalist>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Độ Phân Giải In / Quét (Resolution)</label>
+              <input type="text" class="form-input" id="spec_resolution" list="dl_pr_res" value="${existingSpecs.resolution || '1200 x 1200 dpi In / 600 dpi Optical'}" placeholder="vd: 1200 x 1200 dpi">
+              <datalist id="dl_pr_res">
+                <option value="600 x 600 dpi Fast Draft"></option>
+                <option value="1200 x 1200 dpi True Laser Resolution"></option>
+                <option value="1200 x 1200 dpi True Laser Resolution (HP ImageREt 4800)"></option>
+                <option value="2400 x 1200 dpi Fine CAD / Graphics"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tình Trạng Mực In (% Toner Supplies)</label>
+              <input type="text" class="form-input" id="spec_tonerStatus" list="dl_pr_toner" value="${existingSpecs.tonerStatus || 'Toner Black: 86% · Trống Từ Drum: 94%'}" placeholder="vd: Toner Black: 86%">
+              <datalist id="dl_pr_toner">
+                <option value="Toner Black: 92% · Drum Unit: 96% (Công suất 24,000 trang)"></option>
+                <option value="Toner Black: 85% · Drum Unit: 89%"></option>
+                <option value="Cyan: 88% · Magenta: 90% · Yellow: 85% · Black: 94%"></option>
+                <option value="Hộp mực HP TerraJet 4 màu: C:95% M:92% Y:90% K:98%"></option>
+                <option value="Hộp mực HP 728: Matte Black 300ml (92%), CMY 130ml (88%)"></option>
+              </datalist>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Cấu Hình Khay Nạp Giấy (Trays)</label>
+              <input type="text" class="form-input" id="spec_paperTrays" list="dl_pr_trays" value="${existingSpecs.paperTrays || 'Khay 1 (500 tờ A4), Khay 2 (500 tờ A3), Khay phụ'}" placeholder="vd: Khay 1 (A4 Đầy), Khay 2 (A3)">
+              <datalist id="dl_pr_trays">
+                <option value="Khay 1 (550 tờ A4), Khay 2 (550 tờ A3), Khay phụ 100 tờ"></option>
+                <option value="Khay 1 (500 tờ A4), Khay 2 (500 tờ A3)"></option>
+                <option value="4 Khay nạp tự động (2300 tờ) + Bộ đảo mặt tự động DADF"></option>
+                <option value="4 Khay giấy dung lượng lớn 2300 tờ + Đóng ghim hoàn thiện"></option>
+                <option value="Bộ nạp cuộn giấy 36 inch (Roll Feed) + Khay nạp A3/A4 rời"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Giao Thức In Mạng Hỗ Trợ</label>
+              <input type="text" class="form-input" id="spec_protocols" list="dl_pr_proto" value="${existingSpecs.protocols || 'IPP/IPPS, LPD, RAW Port 9100, Apple AirPrint, Mopria'}" placeholder="vd: IPP/IPPS, LPD, RAW Port 9100, AirPrint">
+              <datalist id="dl_pr_proto">
+                <option value="IPP/IPPS SSL, LPD, RAW Port 9100, Apple AirPrint, Mopria"></option>
+                <option value="IPPS, RAW, WSD, Universal Print Cloud, AirPrint, Mopria"></option>
+                <option value="HP Jetdirect, IPP, IPPS, Apple AirPrint, HP Roam for Business"></option>
+                <option value="HP-GL/2, HP-RTL, TIFF, JPEG, CALS G4, URF, AirPrint"></option>
+              </datalist>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tính Năng Quét Mạng & Bộ Nhớ Mã Hóa</label>
+            <input type="text" class="form-input" id="spec_scanFeatures" list="dl_pr_scan" value="${existingSpecs.scanFeatures || 'Scan-to-Email (SMTP), Scan-to-Folder (SMBv3) · 2GB RAM + 320GB Secure HDD'}" placeholder="vd: Scan-to-Email, SMBv3, 320GB HDD">
+            <datalist id="dl_pr_scan">
+              <option value="Scan-to-Email, SMBv3 Folder, OCR PDF · Tốc độ quét 110 ipm · 2GB RAM + 320GB HDD"></option>
+              <option value="Scan-to-Email (SMTP SSL), Scan-to-Folder SMBv3 · 2GB RAM + 320GB Secure HDD"></option>
+              <option value="Quét tài liệu màu 2 mặt 1 lượt 150 ipm, Tích hợp OCR đám mây · 3.5GB RAM + 256GB SSD"></option>
+              <option value="Scan-to-SharePoint, Scan-to-USB, Email SSL/TLS, SFTP · 5GB RAM + 500GB HDD"></option>
+              <option value="Quét màu bản vẽ kiến trúc 600 dpi Optical khổ 36 inch cuộn · 1GB RAM + Wi-Fi Direct"></option>
+            </datalist>
+          </div>
+        `;
+      } else if (cat === 'service') {
+        extra.innerHTML = presetHeaderHtml + `
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tên Dịch Vụ Mạng Cốt Lõi</label>
+              <input type="text" class="form-input" id="spec_serviceType" list="dl_srvc_types" value="${existingSpecs.serviceType || 'Next-Gen Firewall, DNS/DHCP & VPN Gateway'}" placeholder="vd: CoreDNS Resolver, WireGuard VPN Gateway">
+              <datalist id="dl_srvc_types">
+                <option value="Next-Gen Firewall, Multi-WAN SD-WAN & WireGuard Gateway"></option>
+                <option value="Enterprise NGFW, IPSec VPN, SSL Inspection & SD-WAN"></option>
+                <option value="Application Delivery Controller (L4-L7 ADC & Advanced WAF)"></option>
+                <option value="Core DNS, DHCP Kea, FreeIPA Kerberos, LDAP & RADIUS 802.1X"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cổng Lắng Nghe Dịch Vụ (Listening Ports)</label>
+              <input type="text" class="form-input" id="spec_ports" list="dl_srvc_ports" value="${existingSpecs.ports || 'Port 53 (DNS), 67 (DHCP), 51820 (WireGuard), 443 (WAF)'}" placeholder="vd: Port 53, 67, 1812, 51820">
+              <datalist id="dl_srvc_ports">
+                <option value="Port 53 (DNS), 67 (DHCP), 51820 (WireGuard), 443 (WebGUI)"></option>
+                <option value="Port 443 (SSL VPN), 500/4500 (IPsec), 80/443 (WAF/Proxy)"></option>
+                <option value="Port 80, 443, 8443, 8080 (L7 Virtual Servers Pool)"></option>
+                <option value="Port 53 (DNS TCP/UDP), 67 (DHCP), 389/636 (LDAPS), 1812 (RADIUS)"></option>
+              </datalist>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Dải Cấp Phát DHCP (Subnet Scope Pool)</label>
+              <input type="text" class="form-input" id="spec_dhcpScope" list="dl_dhcp_pools" value="${existingSpecs.dhcpScope || '192.168.1.100 - 192.168.1.240 / 24 (Lease: 24h)'}" placeholder="vd: 192.168.10.100 - 192.168.10.200 / 24">
+              <datalist id="dl_dhcp_pools">
+                <option value="192.168.1.100 - 192.168.1.250 / 24 (Default Lease: 86400s)"></option>
+                <option value="10.10.0.100 - 10.10.255.200 / 16 (Enterprise DHCP Scope)"></option>
+                <option value="192.168.10.50 - 192.168.10.220 / 24 (Dynamic DNS Sync)"></option>
+                <option value="N/A (Load Balancer VIP Pool 172.16.0.1 - 172.16.0.50)"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cấu Hình VPN Gateway & Mã Hóa</label>
+              <input type="text" class="form-input" id="spec_vpnType" list="dl_vpn_types" value="${existingSpecs.vpnType || 'WireGuard & IPsec IKEv2 (AES-256-GCM / ChaCha20)'}" placeholder="vd: WireGuard / IPsec IKEv2">
+              <datalist id="dl_vpn_types">
+                <option value="WireGuard & IPsec IKEv2 (AES-256-GCM / ChaCha20 HW Crypto)"></option>
+                <option value="FortiClient SSL-VPN & IPsec Hub-and-Spoke AES-256"></option>
+                <option value="F5 BIG-IP APM (Access Policy Manager SSL VPN & SSO SAML)"></option>
+                <option value="RADIUS AAA 802.1X EAP-TLS cho WiFi & Switch Port Security"></option>
+              </datalist>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Cơ Chế Dự Phòng Cao (High Availability)</label>
+              <input type="text" class="form-input" id="spec_haMode" list="dl_ha_modes" value="${existingSpecs.haMode || 'CARP Virtual IP HA (Active/Standby Cluster Sync)'}" placeholder="vd: CARP HA, Keepalived VIP">
+              <datalist id="dl_ha_modes">
+                <option value="CARP Virtual IP HA (Active/Standby Cluster XML-RPC Sync)"></option>
+                <option value="FortiGate HA Active-Passive (Sub-second Session Failover)"></option>
+                <option value="Device Service Clustering (DSC) Active-Standby Sync-Failover"></option>
+                <option value="Active-Active Anycast BGP DNS + Multi-Master LDAP Sync"></option>
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Năng Lực Xử Lý Dịch Vụ (Throughput Thực Tế)</label>
+              <input type="text" class="form-input" id="spec_throughput" list="dl_srvc_thru" value="${existingSpecs.throughput || '18.5 Gbps Firewall / 4.2 Gbps IPS / 250k Conns'}" placeholder="vd: 10 Gbps Wire-Speed">
+              <datalist id="dl_srvc_thru">
+                <option value="1 Gbps Wire-Speed (Văn phòng chi nhánh)"></option>
+                <option value="5 Gbps Deep Packet Inspection (Doanh nghiệp vừa)"></option>
+                <option value="10 Gbps Wire-Speed (50,000 Queries/sec DNS & Kerberos AAA)"></option>
+                <option value="18.5 Gbps Firewall / 4.2 Gbps IPS (Netgate 8200)"></option>
+                <option value="27 Gbps Firewall / 3.5 Gbps Threat (FortiGate 200F)"></option>
+                <option value="25 Gbps L7 WAF / ADC (F5 BIG-IP i4800)"></option>
+                <option value="40 Gbps Carrier-Grade Cluster"></option>
+              </datalist>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // HÀM ÁP DỤNG CẤU HÌNH MẪU THỊ TRƯỜNG TẠI MODAL (TAB 2)
+    function applyModalPreset(presetId) {
+      if (!presetId) return;
+      const cat = document.getElementById('editNodeCategory').value;
+      const presets = MARKET_HARDWARE_PROFILES[cat] || [];
+      const preset = presets.find(p => p.id === presetId);
+      if (!preset) return;
+
+      // Cập nhật tab 1
+      if (preset.speed) document.getElementById('editNodeSpeed').value = preset.speed;
+      if (preset.tier) document.getElementById('editNodeTier').value = preset.tier;
+      if (preset.rx) document.getElementById('editNodeRx').value = preset.rx;
+
+      // Cập nhật tab 2
+      for (const [k, v] of Object.entries(preset.specs)) {
+        const el = document.getElementById('spec_' + k);
+        if (el) el.value = v;
+      }
+      showToast(`⚡ Đã nạp thông số chuẩn thị trường: ${preset.name}`);
+    }
+
+    function populateParentSelect(excludeId = null) {
+      const select = document.getElementById('editNodeParent');
+      select.innerHTML = '<option value="">-- Không nối (Tự do / Gateway gốc) --</option>';
+      NETWORK_DATA.nodes.forEach(n => {
+        if (n.id !== excludeId) {
+          const opt = document.createElement('option');
+          opt.value = n.id;
+          opt.textContent = `${n.name} (${n.ip})`;
+          select.appendChild(opt);
+        }
+      });
+    }
+
+    function openAddNodeModal() {
+      document.getElementById('nodeModalTitle').innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-cyan)"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Thêm Thiết Bị Mạng Mới
+      `;
+      document.getElementById('editNodeId').value = '';
+      document.getElementById('editNodeName').value = '';
+      document.getElementById('editNodeIp').value = '192.168.1.';
+      document.getElementById('editNodeMac').value = '00:1B:44:XX:YY:ZZ';
+      document.getElementById('editNodeCategory').value = 'wireless';
+      document.getElementById('editNodeTier').value = 'port';
+      document.getElementById('editNodeStatus').value = 'up';
+      document.getElementById('editNodeLocation').value = 'Văn Phòng Tầng 1';
+      document.getElementById('editNodeSpeed').value = '1 Gbps PoE+';
+      document.getElementById('editNodeRx').value = 85000000;
+      document.getElementById('btnDeleteNode').style.display = 'none';
+
+      document.querySelectorAll('input[name="services"]').forEach(cb => cb.checked = false);
+
+      handleCategoryChange('wireless');
+      populateParentSelect();
+      document.getElementById('editNodeParent').value = selectedNodeId || 'core_sw';
+
+      switchModalTab('tab1', document.getElementById('tabBtn1'));
+      document.getElementById('nodeModal').classList.add('active');
+    }
+
+    function openEditCurrentNodeModal() {
+      const node = NETWORK_DATA.nodes.find(n => n.id === selectedNodeId);
+      if (!node) return;
+
+      document.getElementById('nodeModalTitle').innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-cyan)"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        Chỉnh Sửa Thiết Bị: ${node.name}
+      `;
+      document.getElementById('editNodeId').value = node.id;
+      document.getElementById('editNodeName').value = node.name;
+      document.getElementById('editNodeIp').value = node.ip;
+      document.getElementById('editNodeMac').value = node.mac || '00:1B:44:88:99:AA';
+      document.getElementById('editNodeCategory').value = node.category || 'switch';
+      document.getElementById('editNodeTier').value = node.tier || 'sw';
+      document.getElementById('editNodeStatus').value = node.status || 'up';
+      document.getElementById('editNodeLocation').value = node.location || 'Tủ Rack Core';
+      document.getElementById('editNodeSpeed').value = node.speed || '';
+      document.getElementById('editNodeRx').value = node.rx || 0;
+      document.getElementById('btnDeleteNode').style.display = 'inline-flex';
+
+      const srvs = node.services || [];
+      document.querySelectorAll('input[name="services"]').forEach(cb => {
+        cb.checked = srvs.includes(cb.value);
+      });
+
+      handleCategoryChange(node.category || 'switch', node.specs || {});
+
+      populateParentSelect(node.id);
+      const currentLink = NETWORK_DATA.links.find(l => l.to === node.id);
+      document.getElementById('editNodeParent').value = currentLink ? currentLink.from : '';
+
+      switchModalTab('tab1', document.getElementById('tabBtn1'));
+      document.getElementById('nodeModal').classList.add('active');
+    }
+
+    function saveNodeForm() {
+      const nodeId = document.getElementById('editNodeId').value.trim();
+      const name = document.getElementById('editNodeName').value.trim();
+      const ip = document.getElementById('editNodeIp').value.trim();
+      const mac = document.getElementById('editNodeMac').value.trim();
+      const category = document.getElementById('editNodeCategory').value;
+      const tier = document.getElementById('editNodeTier').value;
+      const status = document.getElementById('editNodeStatus').value;
+      const location = document.getElementById('editNodeLocation').value.trim();
+      const speed = document.getElementById('editNodeSpeed').value.trim();
+      const rx = Number(document.getElementById('editNodeRx').value) || 0;
+      const tx = Math.round(rx * 0.35);
+      const parentId = document.getElementById('editNodeParent').value;
+
+      if (!name || !ip) {
+        alert('Vui lòng nhập đầy đủ Tên thiết bị và Địa chỉ IP!');
+        return;
+      }
+
+      const selectedServices = [];
+      document.querySelectorAll('input[name="services"]:checked').forEach(cb => {
+        selectedServices.push(cb.value);
+      });
+
+      // Lấy toàn bộ các trường specs kỹ thuật chi tiết theo category
+      const specs = {};
+      const fields = [
+        'model', 'portCount', 'poeBudget', 'switchingCapacity', 'layer', 'vlanCount', 'security',
+        'wifiStandards', 'mimo', 'ssids', 'coverage', 'clientsActive', 'roaming', 'powerMethod',
+        'formFactor', 'cpu', 'ram', 'storageRaid', 'usableStorage', 'os', 'nics', 'vmCount',
+        'printerType', 'printSpeed', 'resolution', 'tonerStatus', 'paperTrays', 'protocols', 'scanFeatures',
+        'serviceType', 'ports', 'dhcpScope', 'vpnType', 'haMode', 'throughput'
+      ];
+      fields.forEach(f => {
+        const el = document.getElementById('spec_' + f);
+        if (el && el.value) specs[f] = el.value.trim();
+      });
+
+      const descr = specs.model || specs.serviceType || specs.printerType || name;
+
+      if (nodeId) {
+        const node = NETWORK_DATA.nodes.find(n => n.id === nodeId);
+        if (node) {
+          node.name = name;
+          node.ip = ip;
+          node.mac = mac;
+          node.category = category;
+          node.tier = tier;
+          node.status = status;
+          node.location = location;
+          node.descr = descr;
+          node.speed = speed;
+          node.rx = rx;
+          node.tx = tx;
+          node.services = selectedServices;
+          node.specs = specs;
+        }
+
+        NETWORK_DATA.links = NETWORK_DATA.links.filter(l => l.to !== nodeId);
+        if (parentId) {
+          NETWORK_DATA.links.push({
+            from: parentId,
+            to: nodeId,
+            label: `${speed || 'Link'}: ${fmtRate(rx)}`,
+            rx: rx,
+            tx: tx
+          });
+        }
+        showToast(`Đã lưu thông số kỹ thuật cho thiết bị [${name}]`);
+      } else {
+        const newId = 'node_' + Date.now();
+        const parentNode = NETWORK_DATA.nodes.find(n => n.id === parentId);
+        const newX = parentNode ? parentNode.x + 260 : 600;
+        const newY = parentNode ? parentNode.y + 110 : 300;
+
+        const newNode = {
+          id: newId,
+          name: name,
+          ip: ip,
+          mac: mac,
+          category: category,
+          tier: tier,
+          x: newX,
+          y: newY,
+          status: status,
+          location: location,
+          speed: speed,
+          rx: rx,
+          tx: tx,
+          descr: descr,
+          oid: '1.3.6.1.2.1.31.1.1.1.6.x',
+          services: selectedServices,
+          specs: specs
+        };
+        NETWORK_DATA.nodes.push(newNode);
+
+        NETWORK_DATA.ports[newId] = [
+          { port: 'eth0', name: `UPLINK-${speed || '1G'}`, status: 'up', speed: speed || '1 Gbps', rx: rx, tx: tx },
+          { port: 'eth1', name: 'PORT-SPARE-02', status: 'down', speed: 'Down', rx: 0, tx: 0 }
+        ];
+
+        if (parentId) {
+          NETWORK_DATA.links.push({
+            from: parentId,
+            to: newId,
+            label: `${speed || 'Link'}: ${fmtRate(rx)}`,
+            rx: rx,
+            tx: tx
+          });
+        }
+
+        selectedNodeId = newId;
+        showToast(`Đã thêm thiết bị mới [${name}] vào mô hình mạng!`);
+      }
+
+      saveToStorage();
+      closeModal('nodeModal');
+      renderTopology();
+      selectNode(selectedNodeId);
+    }
+
+    function deleteCurrentNode() {
+      const node = NETWORK_DATA.nodes.find(n => n.id === selectedNodeId);
+      if (!node) return;
+
+      if (!confirm(`Bạn có chắc muốn xóa thiết bị [${node.name}] khỏi sơ đồ mạng không?`)) return;
+
+      NETWORK_DATA.nodes = NETWORK_DATA.nodes.filter(n => n.id !== selectedNodeId);
+      NETWORK_DATA.links = NETWORK_DATA.links.filter(l => l.from !== selectedNodeId && l.to !== selectedNodeId);
+      delete NETWORK_DATA.ports[selectedNodeId];
+
+      selectedNodeId = NETWORK_DATA.nodes[0] ? NETWORK_DATA.nodes[0].id : '';
+      saveToStorage();
+      closeModal('nodeModal');
+      renderTopology();
+      if (selectedNodeId) selectNode(selectedNodeId);
+      showToast(`Đã xóa thiết bị [${node.name}]`);
+    }
+
+    function openAddPortModal() {
+      document.getElementById('portModalTitle').textContent = `Thêm Cổng Mới Vào [${selectedNodeId}]`;
+      document.getElementById('editPortIndex').value = -1;
+      document.getElementById('editPortId').value = `Gi1/0/${(NETWORK_DATA.ports[selectedNodeId] || []).length + 1}`;
+      document.getElementById('editPortName').value = 'NEW-CLIENT-192.168.1.x';
+      document.getElementById('editPortSpeed').value = '1 Gbps';
+      document.getElementById('editPortStatus').value = 'up';
+      document.getElementById('editPortAlert').value = 'false';
+      document.getElementById('editPortRx').value = 45000000;
+      document.getElementById('editPortTx').value = 12000000;
+      document.getElementById('portModal').classList.add('active');
+    }
+
+    function openEditPortModal(index) {
+      const portList = NETWORK_DATA.ports[selectedNodeId] || [];
+      const p = portList[index];
+      if (!p) return;
+
+      document.getElementById('portModalTitle').textContent = `Chỉnh Sửa Cổng [${p.port}]`;
+      document.getElementById('editPortIndex').value = index;
+      document.getElementById('editPortId').value = p.port;
+      document.getElementById('editPortName').value = p.name;
+      document.getElementById('editPortSpeed').value = p.speed || '1 Gbps';
+      document.getElementById('editPortStatus').value = p.status || 'up';
+      document.getElementById('editPortAlert').value = p.alert ? 'true' : 'false';
+      document.getElementById('editPortRx').value = p.rx || 0;
+      document.getElementById('editPortTx').value = p.tx || 0;
+      document.getElementById('portModal').classList.add('active');
+    }
+
+    function savePortForm() {
+      const index = parseInt(document.getElementById('editPortIndex').value);
+      const port = document.getElementById('editPortId').value.trim();
+      const name = document.getElementById('editPortName').value.trim();
+      const speed = document.getElementById('editPortSpeed').value.trim();
+      const status = document.getElementById('editPortStatus').value;
+      const alert = document.getElementById('editPortAlert').value === 'true';
+      const rx = Number(document.getElementById('editPortRx').value) || 0;
+      const tx = Number(document.getElementById('editPortTx').value) || 0;
+
+      if (!port || !name) {
+        window.alert('Vui lòng nhập tên cổng và mô tả thiết bị!');
+        return;
+      }
+
+      if (!NETWORK_DATA.ports[selectedNodeId]) NETWORK_DATA.ports[selectedNodeId] = [];
+      const portItem = { port, name, speed, status, alert, rx, tx };
+
+      if (index >= 0) {
+        NETWORK_DATA.ports[selectedNodeId][index] = portItem;
+        showToast(`Đã cập nhật cổng [${port}]`);
+      } else {
+        NETWORK_DATA.ports[selectedNodeId].push(portItem);
+        showToast(`Đã thêm cổng [${port}]`);
+      }
+
+      saveToStorage();
+      closeModal('portModal');
+      renderPortList(selectedNodeId);
+    }
+
+    function deletePort(index) {
+      if (!confirm('Bạn có chắc muốn xóa cổng này?')) return;
+      const portList = NETWORK_DATA.ports[selectedNodeId] || [];
+      portList.splice(index, 1);
+      saveToStorage();
+      renderPortList(selectedNodeId);
+      showToast('Đã xóa cổng khỏi thiết bị');
+    }
+
+    function openJsonModal() {
+      document.getElementById('jsonConfigText').value = JSON.stringify(NETWORK_DATA, null, 2);
+      document.getElementById('jsonModal').classList.add('active');
+    }
+
+    function applyJsonConfig() {
+      try {
+        const text = document.getElementById('jsonConfigText').value;
+        const parsed = JSON.parse(text);
+        if (!parsed.nodes || !parsed.links) throw new Error('Dữ liệu JSON thiếu nodes hoặc links!');
+        NETWORK_DATA = parsed;
+        saveToStorage();
+        closeModal('jsonModal');
+        renderTopology();
+        selectNode(NETWORK_DATA.nodes[0] ? NETWORK_DATA.nodes[0].id : '');
+        showToast('Đã áp dụng cấu hình JSON thành công!');
+      } catch (err) {
+        alert('Lỗi định dạng JSON: ' + err.message);
+      }
+    }
+
+    function downloadJsonFile() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(NETWORK_DATA, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `enterprise_network_topology_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function resetToFactoryDefault() {
+      if (!confirm('Khôi phục lại toàn bộ cấu hình mạng về trạng thái mẫu ban đầu?')) return;
+      NETWORK_DATA = JSON.parse(JSON.stringify(DEFAULT_NETWORK_DATA));
+      saveToStorage();
+      closeModal('jsonModal');
+      renderTopology();
+      selectNode('core_sw');
+      showToast('Đã khôi phục cấu hình mặc định ban đầu.');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function showSnmpTooltip(e, node) {
+      const tip = document.getElementById('snmpTooltip');
+      const srvs = (node.services && node.services.length > 0) ? node.services.join(', ') : 'None';
+      tip.innerHTML = `
+        <strong>${node.name} [${node.ip}]</strong>
+        <div class="oid-item">Loại: <span class="oid-val">${(node.category || 'switch').toUpperCase()}</span></div>
+        <div class="oid-item">Model: <span class="oid-val">${node.descr || 'Managed Device'}</span></div>
+        <div class="oid-item">Vị trí: <span class="oid-val">${node.location || 'IDF Rack'}</span></div>
+        <div class="oid-item">Dịch vụ: <span class="oid-val">${srvs}</span></div>
+        <div class="oid-item">RX Throughput: <span class="oid-val">${fmtRate(node.rx)}</span></div>
+        <div class="oid-item">TX Throughput: <span class="oid-val">${fmtRate(node.tx)}</span></div>
+      `;
+      tip.style.left = `${e.clientX + 16}px`;
+      tip.style.top = `${e.clientY + 16}px`;
+      tip.style.display = 'block';
+    }
+
+    function hideSnmpTooltip() {
+      document.getElementById('snmpTooltip').style.display = 'none';
+    }
+
+    function toggleTheme() {
+      if (currentTheme === 'neon') {
+        document.documentElement.setAttribute('data-theme', 'glass');
+        currentTheme = 'glass';
+        document.getElementById('themeLabel').textContent = 'Theme: Glass';
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        currentTheme = 'neon';
+        document.getElementById('themeLabel').textContent = 'Theme: Neon';
+      }
+      renderTopology();
+    }
+
+    function toggleAutoRotate() {
+      const btn = document.getElementById('btnAutoRotate');
+      if (autoRotateTimer) {
+        clearInterval(autoRotateTimer);
+        autoRotateTimer = null;
+        btn.classList.remove('btn-active');
+        btn.querySelector('span').textContent = 'Tự xoay (6s)';
+      } else {
+        const switchIds = NETWORK_DATA.nodes.map(n => n.id);
+        let idx = switchIds.indexOf(selectedNodeId);
+        btn.classList.add('btn-active');
+        btn.querySelector('span').textContent = 'Tự xoay: BẬT';
+        
+        autoRotateTimer = setInterval(() => {
+          idx = (idx + 1) % switchIds.length;
+          selectNode(switchIds[idx]);
+        }, 6000);
+      }
+    }
+
+    function simulateTrafficSurge() {
+      isSurgeActive = !isSurgeActive;
+      const btn = document.getElementById('btnSimulateSurge');
+      const ticker = document.getElementById('logTicker');
+      const srvNode = NETWORK_DATA.nodes.find(n => n.id === 'srv_truenas');
+
+      if (isSurgeActive) {
+        btn.classList.add('btn-active');
+        btn.querySelector('span').textContent = 'Hủy Bơm Tải';
+        if (srvNode) {
+          srvNode.rx = 9400000000;
+          srvNode.tx = 6200000000;
+          srvNode.status = 'alert';
+        }
+        
+        document.getElementById('kpiWanTraffic').textContent = '↓ 982 Mbps  ↑ 840 Mbps';
+        document.getElementById('kpiAlertCount').textContent = '3 Cảnh Báo CRITICAL';
+        document.getElementById('cardAlertCount').classList.remove('kpi-warn');
+        document.getElementById('cardAlertCount').classList.add('kpi-crit');
+        ticker.innerHTML = `[ALERT CRIT] SNMP Poller: OID 1.3.6.1.2.1.31.1.1.1.6.4 (TrueNAS) đạt 9.4 Gbps! Vượt trần 4x Baseline hôm qua.`;
+      } else {
+        btn.classList.remove('btn-active');
+        btn.querySelector('span').textContent = 'Bơm tải (Surge)';
+        if (srvNode) {
+          srvNode.rx = 480000000;
+          srvNode.tx = 250000000;
+          srvNode.status = 'up';
+        }
+        
+        document.getElementById('kpiWanTraffic').textContent = '↓ 642 Mbps  ↑ 184 Mbps';
+        document.getElementById('kpiAlertCount').textContent = '1 Cảnh Báo Sàn';
+        document.getElementById('cardAlertCount').classList.add('kpi-warn');
+        document.getElementById('cardAlertCount').classList.remove('kpi-crit');
+        ticker.innerHTML = `[NORMAL] Hệ thống mạng đã ổn định sau đợt kiểm tra tải SNMP.`;
+      }
+      renderTopology();
+      selectNode(selectedNodeId);
+    }
+
+    function handleSearch(query) {
+      query = query.trim().toLowerCase();
+      if (!query) {
+        document.querySelectorAll('.svg-node-group').forEach(el => el.style.opacity = '1');
+        return;
+      }
+
+      NETWORK_DATA.nodes.forEach(node => {
+        const group = document.getElementById(`node-${node.id}`);
+        const matchNode = node.name.toLowerCase().includes(query) || node.ip.includes(query) || (node.location && node.location.toLowerCase().includes(query)) || (node.services && node.services.some(s => s.toLowerCase().includes(query)));
+        const portList = NETWORK_DATA.ports[node.id] || [];
+        const matchPort = portList.some(p => p.name.toLowerCase().includes(query) || p.port.toLowerCase().includes(query));
+
+        if (group) {
+          if (matchNode || matchPort) {
+            group.style.opacity = '1';
+            group.querySelector('.node-box').style.stroke = 'var(--accent-cyan)';
+          } else {
+            group.style.opacity = '0.2';
+            group.querySelector('.node-box').style.stroke = 'var(--border-color)';
+          }
+        }
+      });
+    }
+
+    function zoomCanvas(factor) {
+      canvasZoom *= factor;
+      canvasZoom = Math.min(2.5, Math.max(0.6, canvasZoom));
+      applyTransform();
+    }
+
+    function resetCanvas() {
+      canvasZoom = 1;
+      panX = 0;
+      panY = 0;
+      applyTransform();
+    }
+
+    function applyTransform() {
+      const g = document.getElementById('viewport-group');
+      g.setAttribute('transform', `translate(${panX}, ${panY}) scale(${canvasZoom})`);
+    }
+
+    const svgEl = document.getElementById('topo-svg-canvas');
+
+    svgEl.addEventListener('mousedown', (e) => {
+      if (isArrangeMode) return;
+      if (e.target.closest('.svg-node-group')) return;
+      isDraggingCanvas = true;
+      startPanX = e.clientX - panX;
+      startPanY = e.clientY - panY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isDraggingNode && draggedNode) {
+        const pt = getSvgPoint(e);
+        draggedNode.x = Math.round(pt.x - dragNodeStartX);
+        draggedNode.y = Math.round(pt.y - dragNodeStartY);
+        renderTopology();
+        return;
+      }
+
+      if (isDraggingCanvas) {
+        panX = e.clientX - startPanX;
+        panY = e.clientY - startPanY;
+        applyTransform();
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isDraggingNode) {
+        isDraggingNode = false;
+        draggedNode = null;
+        saveToStorage();
+      }
+      isDraggingCanvas = false;
+    });
+
+    setInterval(() => {
+      if (isSurgeActive || isDraggingNode) return;
+      
+      NETWORK_DATA.links.forEach(l => {
+        const delta = (Math.random() - 0.48) * 0.08;
+        l.rx = Math.max(1000000, Math.round(l.rx * (1 + delta)));
+        l.tx = Math.max(500000, Math.round(l.tx * (1 + delta)));
+      });
+
+      renderTopology();
+      
+      const n = NETWORK_DATA.nodes.find(x => x.id === selectedNodeId);
+      if (n) {
+        document.getElementById('specThroughput').textContent = fmtRate((n.rx || 0) + (n.tx || 0));
+      }
+    }, 3000);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderTopology();
+      selectNode('core_sw');
+    });
+  </script>
+</body>
+</html>
